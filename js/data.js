@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'LLG_DATA_V6_FIXED'; // 버전을 바꿔서 충돌 방지
+const STORAGE_KEY = 'LLG_DATA_V7_FINAL'; 
 
 // 초기 데이터
 const DEFAULT_STATE = {
@@ -10,7 +10,6 @@ const DEFAULT_STATE = {
     unlockedJobs: ["무직"],
     inventory: [], 
     
-    // 5대 스탯 정의
     cores: {
         STR: { name: "힘 (STR)", level: 0, color: "#FF5C5C" },
         DEX: { name: "솜씨 (DEX)", level: 0, color: "#6BCB77" },
@@ -18,7 +17,6 @@ const DEFAULT_STATE = {
         WIS: { name: "지혜 (WIS)", level: 0, color: "#FFD700" },
         VIT: { name: "체력 (VIT)", level: 0, color: "#FF9F43" }
     },
-    
     masteries: {}, 
     skills: {}, 
     quests: {}, 
@@ -35,16 +33,11 @@ export const DataManager = {
         if(!json) return JSON.parse(JSON.stringify(DEFAULT_STATE));
         
         const data = JSON.parse(json);
-        
-        // [중요] 데이터 마이그레이션 (없는 스탯 자동 복구)
         const defaults = DEFAULT_STATE.cores;
         if (!data.cores) data.cores = {};
         
-        // 5개 스탯 중 하나라도 없으면 기본값으로 채워넣음 (에러 방지)
         ['STR', 'DEX', 'INT', 'WIS', 'VIT'].forEach(key => {
-            if (!data.cores[key]) {
-                data.cores[key] = JSON.parse(JSON.stringify(defaults[key]));
-            }
+            if (!data.cores[key]) data.cores[key] = JSON.parse(JSON.stringify(defaults[key]));
         });
 
         if(!data.quests) data.quests = {};
@@ -58,12 +51,5 @@ export const DataManager = {
     reset: () => {
         localStorage.removeItem(STORAGE_KEY);
         location.reload();
-    },
-    export: (state) => {
-        const str = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
-        const node = document.createElement('a');
-        node.href = str;
-        node.download = `LLG_Backup_${new Date().toISOString().slice(0,10)}.json`;
-        node.click();
     }
 };
