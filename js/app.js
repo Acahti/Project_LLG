@@ -138,19 +138,32 @@ function startBattle(skillId) {
 }
 
 document.getElementById('btn-stop').onclick = () => {
+    // 1. 타이머가 없으면(이미 멈췄으면) 무시
     if (!timer) return;
+
+    // 2. 타이머 및 게임 엔진 종료
     clearInterval(timer);
     timer = null;
     BattleManager.destroy(); // Phaser 종료
 
-    // 보상 지급
+    // 3. 보상 지급 및 저장
     state.gold += sessionSec;
     state.skills[activeSkillId].seconds += sessionSec;
     DataManager.save(state);
     
-    alert(`${sessionSec} 골드 획득!`);
+    // 4. 알림 메시지
+    alert(`수련 종료! ${sessionSec} 골드를 획득했습니다.`);
+    
+    // 5. [중요] 전투 화면 UI 깨끗하게 초기화 (0으로 되돌리기)
+    sessionSec = 0;
+    activeSkillId = null;
+    document.getElementById('battle-quest-name').innerText = "-";
+    document.getElementById('battle-timer').innerText = "00:00:00";
+    document.getElementById('battle-earning').innerText = "보상 대기중...";
+
+    // 6. 전체 UI 갱신 후 '퀘스트' 탭으로 이동
     updateGlobalUI();
-    switchTab('character');
+    switchTab('quest'); // ★ 전투 화면에서 빠져나와 퀘스트 목록으로 보냄
 };
 
 // --- 4. 탭 전환 및 초기화 ---
