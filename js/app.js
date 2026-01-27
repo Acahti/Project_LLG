@@ -9,28 +9,22 @@ let currentCategory = null, currentFolderId = null, editingItemId = null;
 let selectedIcon = 'star', selectedColor = '#4A4A4A', selectedShape = 'shape-square';
 
 const initGlobal = () => {
-    // [기존 v9.2 함수들]
-    window.openSettingsMainModal = openSettingsMainModal;
-    window.openGeneralSettings = openGeneralSettings;
-    window.openThemeSettings = openThemeSettings;
-    window.openDataSettings = openDataSettings;
-    window.setTheme = setTheme; window.adjustFontSize = adjustFontSize;
-    window.closeModal = closeModal; window.closeConfirmModal = closeConfirmModal;
-    window.switchTitleTab = switchTitleTab; window.equipTitle = equipTitle; window.equipJob = equipJob;
-    window.openSkillCreateModal = openSkillCreateModal; window.checkMasteryInput = checkMasteryInput; window.createSkillAction = createSkillAction;
-    window.toggleStat = toggleStat; window.openEditSkillModal = openEditSkillModal; window.saveSkillEdit = saveSkillEdit; window.deleteSkillEdit = deleteSkillEdit;
-    window.openEditMasteryModal = openEditMasteryModal; window.saveMasteryEdit = saveMasteryEdit; window.deleteMasteryEdit = deleteMasteryEdit;
-    window.openQuestManager = openQuestManager; window.createQuestAction = createQuestAction; window.confirmDeleteQuest = confirmDeleteQuest;
-    window.startBattle = startBattle; window.openRestoreSkillMode = openRestoreSkillMode; window.restoreSkill = restoreSkill; window.permDeleteSkill = permDeleteSkill;
-    window.openCreateShopItemModal = openCreateShopItemModal; window.createShopItemAction = createShopItemAction; window.confirmDeleteShopItem = confirmDeleteShopItem; window.buyItem = buyItem;
-    window.openTitleModal = openTitleModal;
-    
-    // [신규 보관함 함수들]
-    window.enterCategory = enterCategory; window.exitToPortal = exitToPortal; window.updateInvRender = updateInvRender;
-    window.handleInvAdd = handleInvAdd; window.openFolderCreateModal = openFolderCreateModal; window.createFolderAction = createFolderAction;
-    window.saveItemAction = saveItemAction; window.openItemDetail = openItemDetail; window.openItemEditModal = openItemEditModal;
-    window.openMoveModal = openMoveModal; window.selectMoveTarget = selectMoveTarget; window.deleteItemEdit = deleteItemEdit;
-    window.openFolderSettings = openFolderSettings; window.saveFolderAction = saveFolderAction; window.deleteFolderAction = deleteFolderAction;
+    const fns = {
+        // [기존 v9.2 함수들]
+        openSettingsMainModal, openGeneralSettings, openThemeSettings, openDataSettings,
+        setTheme, adjustFontSize, closeModal, closeConfirmModal, switchTitleTab, equipTitle, equipJob,
+        openSkillCreateModal, checkMasteryInput, createSkillAction, toggleStat,
+        openEditSkillModal, saveSkillEdit, deleteSkillEdit, openEditMasteryModal, saveMasteryEdit, deleteMasteryEdit,
+        openQuestManager, createQuestAction, confirmDeleteQuest, startBattle, 
+        openRestoreSkillMode, restoreSkill, permDeleteSkill,
+        openCreateShopItemModal, createShopItemAction, confirmDeleteShopItem, buyItem, openTitleModal,
+        
+        // [신규/교체된 보관함 함수들]
+        enterCategory, exitToPortal, updateInvRender, handleInvAdd, 
+        openFolderCreateModal, createFolderAction, openFolderSettings, saveFolderAction, deleteFolderAction,
+        saveItemAction, openItemDetail, openItemEditModal, deleteItemEdit, openMoveModal, selectMoveTarget
+    };
+    Object.entries(fns).forEach(([k, v]) => window[k] = v);
 };
 
 const initApp = () => {
@@ -44,13 +38,12 @@ const initApp = () => {
     renderCharacter();
 };
 
+// [유틸 & 설정 (v9.2 + 모달 버그 수정)]
 window.showToast = (msg) => { const c = document.getElementById('toast-container'); const d = document.createElement('div'); d.className = 'toast'; d.innerText = msg; c.appendChild(d); setTimeout(() => { d.classList.add('hide'); setTimeout(() => d.remove(), 400); }, 2500); };
 window.openConfirmModal = (t, m, cb) => { const el = document.getElementById('modal-confirm'); document.getElementById('confirm-title').innerText = t; document.getElementById('confirm-msg').innerText = m; el.style.display = 'flex'; const b = document.getElementById('btn-confirm-yes'); const nb = b.cloneNode(true); b.parentNode.replaceChild(nb, b); nb.onclick = () => { el.style.display = 'none'; cb(); }; };
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 function closeConfirmModal() { document.getElementById('modal-confirm').style.display = 'none'; }
 function closeAllModals() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
-
-// [설정: v9.2 로직에 switchModal 적용하여 버그 수정]
 function switchModal(id) { closeAllModals(); document.getElementById(id).style.display = 'flex'; }
 function openSettingsMainModal() { switchModal('modal-settings-main'); }
 function openGeneralSettings() { switchModal('modal-settings-general'); }
@@ -61,7 +54,7 @@ function adjustFontSize(d) { let s = state.settings.fontSize + d; if(s<8) s=8; i
 function bindDataEvents() { document.getElementById('btn-reset').onclick = () => openConfirmModal("초기화", "정말 삭제?", () => DataManager.reset()); document.getElementById('btn-export').onclick = () => DataManager.export(state); document.getElementById('btn-import').onclick = () => document.getElementById('file-input').click(); document.getElementById('file-input').onchange = (e) => { const r = new FileReader(); r.onload = (v) => { try { state = JSON.parse(v.target.result); DataManager.save(state); location.reload(); } catch { showToast("오류"); } }; if(e.target.files.length) r.readAsText(e.target.files[0]); }; }
 
 // ============================================
-// [신규] 보관함 로직 (기존 renderInventory 삭제됨)
+// [신규] 보관함 로직 (v10.4)
 // ============================================
 const ICON_LIST = ['star', 'menu_book', 'psychology', 'terminal', 'fitness_center', 'military_tech', 'workspace_premium', 'shield', 'diamond', 'favorite', 'auto_awesome', 'trending_up', 'history_edu', 'palette', 'language', 'construction', 'biotech', 'emoji_events', 'flag', 'bolt'];
 const LOOT_COLORS = ['#4A4A4A', '#2D5A27', '#244A7D', '#6A329F', '#A17917'];
@@ -100,6 +93,7 @@ function openItemDetail(id) {
     const isLoot = i.type === 'loot';
     const btnEdit = document.getElementById('btn-edit-item'); const btnDel = document.getElementById('btn-delete-item'); const btnMove = document.getElementById('btn-move-item');
     btnEdit.style.display = isLoot ? 'none' : 'flex'; btnDel.style.display = isLoot ? 'none' : 'flex';
+    // 이벤트 직접 연결 (Bug Fix)
     btnEdit.onclick = () => openItemEditModal(id);
     btnDel.onclick = () => openConfirmModal("삭제", "정말 삭제?", () => { state.inventory = state.inventory.filter(x => x.id !== id); DataManager.save(state); updateInvRender(); closeModal('modal-item-detail'); showToast("삭제됨"); });
     btnMove.onclick = () => openMoveModal(id);
