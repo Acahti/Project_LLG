@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PROJECT: LLG</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/style.css">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
+</head>
+<body>
+    <header>
+        <div class="top-info">
+            <span class="material-icons-round job-icon">verified</span> 
+            <span id="ui-job">로딩중...</span>
+        </div>
+        <div class="top-info">
+            <span class="material-icons-round gold-icon">monetization_on</span> 
+            <span id="ui-gold">0 G</span>
+        </div>
+    </header>
+
+    <main>
+        <section id="tab-character" class="tab-screen active">
+            <div id="stats-container"></div>
+        </section>
+
+        <section id="tab-quest" class="tab-screen">
+            <div class="card header-card">
+                <h3>수련 목록</h3>
+                <p>수행할 '술기(Arts)'를 선택하세요.</p>
+            </div>
+            <div id="quest-container"></div>
+        </section>
+
+        <section id="tab-battle" class="tab-screen">
+            <div id="phaser-root"></div> <div class="battle-ui">
+                <h3 id="battle-quest-name" style="color:var(--accent)">-</h3>
+                <h1 id="battle-timer">00:00:00</h1>
+                <p id="battle-earning">보상 대기중...</p>
+                <button id="btn-stop" class="btn-danger">수련 중지 (보상 받기)</button>
+            </div>
+        </section>
+
+        <section id="tab-shop" class="tab-screen">
+            <div class="card header-card">
+                <h3>현실 환전소</h3>
+                <p>골드로 현실의 보상을 구매하세요.</p>
+            </div>
+            <div id="shop-container"></div>
+        </section>
+
+        <section id="tab-settings" class="tab-screen">
+            <div class="card">
+                <h3>데이터 백업</h3>
+                <button id="btn-export">💾 파일로 저장 (백업)</button>
+                <button id="btn-import" style="margin-top:10px; background:#555;">📂 파일 불러오기 (복구)</button>
+                <input type="file" id="file-input" style="display: none;" accept=".json">
+            </div>
+            <div class="card">
+                <button id="btn-reset" style="background:#882222;">⚠️ 데이터 초기화</button>
+            </div>
+        </section>
+    </main>
+
+    <nav>
+        <a class="nav-btn active" data-target="character"><span class="material-icons-round">person</span><span>내정보</span></a>
+        <a class="nav-btn" data-target="quest"><span class="material-icons-round">assignment</span><span>퀘스트</span></a>
+        <a class="nav-btn" data-target="battle"><span class="material-icons-round">timer</span><span>전투</span></a>
+        <a class="nav-btn" data-target="shop"><span class="material-icons-round">shopping_bag</span><span>상점</span></a>
+        <a class="nav-btn" data-target="settings"><span class="material-icons-round">settings</span><span>설정</span></a>
+    </nav>
+
+    <script>
+        // 서비스 워커 등록 (PWA)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js');
+        }
+    </script>
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
