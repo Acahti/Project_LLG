@@ -7,7 +7,7 @@ let sessionSec = 0;
 let activeQuestId = null;
 let selectedCoreForCreate = null;
 
-// [1] 알림 & 모달 시스템
+// --- [1] 알림 & 모달 시스템 ---
 window.showToast = (msg) => {
     const container = document.getElementById('toast-container');
     if (!container) return;
@@ -37,7 +37,7 @@ window.openConfirmModal = (msg, callback) => {
 };
 window.closeConfirmModal = () => document.getElementById('modal-confirm').style.display = 'none';
 
-// [2] 차트 및 UI 업데이트
+// --- [2] 차트 및 UI 업데이트 ---
 function drawRadarChart() {
     const canvas = document.getElementById('stat-radar');
     if (!canvas) return;
@@ -110,7 +110,7 @@ function updateGlobalUI() {
     drawRadarChart();
 }
 
-// [3] 렌더링 함수들
+// --- [3] 렌더링 함수들 ---
 function renderCharacter() {
     const list = document.getElementById('stats-list');
     list.innerHTML = '';
@@ -168,10 +168,8 @@ function renderQuest() {
         const quest = state.quests[qid];
         const mainSkill = state.skills[quest.mainSkillId];
         
-        // 메인 스킬이 없으면 표시 안 함
         if (!mainSkill || mainSkill.hidden) continue;
         
-        // 서브 스킬 정보 가져오기
         let subSkillInfo = '';
         if (quest.subSkillId) {
             const subSkill = state.skills[quest.subSkillId];
@@ -240,7 +238,7 @@ function renderShop() {
     });
 }
 
-// [4] 모달 로직 (탭, 스킬 생성 등)
+// --- [4] 모달 로직 (탭, 스킬 생성 등) ---
 window.openTitleModal = () => { document.getElementById('modal-title').style.display = 'flex'; switchTitleTab('title'); };
 window.switchTitleTab = (tabName) => {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -339,6 +337,7 @@ window.createQuestAction = () => {
 function checkAchievements() {
     let updated = false;
     if (state.cores.STR.level >= 10 && !state.unlockedJobs.includes("전사")) { state.unlockedJobs.push("전사"); showToast("직업 해금: 전사"); updated=true; }
+    if (state.cores.INT.level >= 10 && !state.unlockedJobs.includes("학자")) { state.unlockedJobs.push("학자"); showToast("직업 해금: 학자"); updated=true; }
     if(updated) DataManager.save(state);
 }
 
@@ -366,10 +365,8 @@ document.getElementById('btn-stop').onclick = () => {
     
     state.gold += sessionSec;
     
-    // 주 스킬 100%
     if(mainSkill) mainSkill.seconds += sessionSec;
     
-    // 부 스킬 20%
     let subMsg = "";
     if (quest.subSkillId) {
         const subSkill = state.skills[quest.subSkillId];
@@ -388,7 +385,16 @@ document.getElementById('btn-stop').onclick = () => {
     DataManager.save(state); updateGlobalUI(); switchTab('quest');
 };
 
-// [백업 오류 수정]
+// [수정] 백업 저장 성공 시 Toast 표시
+document.getElementById('btn-export').onclick = () => {
+    try {
+        DataManager.export(state);
+        showToast("백업 파일이 생성되었습니다.");
+    } catch(e) {
+        showToast("오류: " + e.message);
+    }
+};
+
 document.getElementById('btn-import').onclick = () => document.getElementById('file-input').click();
 document.getElementById('file-input').onchange = (e) => {
     const reader = new FileReader();
@@ -402,10 +408,9 @@ document.getElementById('file-input').onchange = (e) => {
     if(e.target.files.length > 0) reader.readAsText(e.target.files[0]);
 };
 
-// [초기화 UI 수정]
 document.getElementById('btn-reset').onclick = () => openConfirmModal("모든 데이터를 초기화하시겠습니까?", () => DataManager.reset());
 
-// 기타 탭 전환 등 기존 코드 유지
+// 공통
 function switchTab(target) {
     document.querySelectorAll('.tab-screen').forEach(el => el.classList.remove('active'));
     document.getElementById(`tab-${target}`).classList.add('active');
@@ -420,7 +425,22 @@ document.querySelectorAll('.nav-btn').forEach(btn => btn.onclick = () => switchT
 window.closeModal = (id) => document.getElementById(id).style.display = 'none';
 
 window.openSkillManager = () => document.getElementById('modal-skill-manager').style.display = 'flex';
-window.openRestoreSkillMode = () => { /* 기존 코드 복붙 */ document.getElementById('modal-skill-manager').style.display = 'none'; document.getElementById('modal-restore-skill').style.display = 'flex'; const list = document.getElementById('deleted-skill-list'); list.innerHTML = ''; for(let sid in state.skills) { const s = state.skills[sid]; const item = document.createElement('div'); item.className = 'list-item'; if(s.hidden) { item.innerHTML = `<span style="text-decoration:line-through;color:#666;font-size:9px;">${s.name}</span><div style="display:flex;gap:5px;"><button class="btn-sm" onclick="restoreSkill('${sid}')">복구</button><button class="btn-sm btn-danger" onclick="permDeleteSkill('${sid}')">삭제</button></div>`; } else { item.innerHTML = `<span>${s.name}</span><button class="btn-sm btn-danger" onclick="softDeleteSkill('${sid}')">보관</button>`; } list.appendChild(item); } };
+window.openRestoreSkillMode = () => {
+    document.getElementById('modal-skill-manager').style.display = 'none';
+    document.getElementById('modal-restore-skill').style.display = 'flex';
+    const list = document.getElementById('deleted-skill-list'); list.innerHTML = '';
+    for(let sid in state.skills) {
+        const s = state.skills[sid];
+        const item = document.createElement('div'); item.className = 'list-item';
+        if(s.hidden) {
+            item.innerHTML = `<span style="text-decoration:line-through;color:#666;font-size:9px;">${s.name}</span>
+            <div style="display:flex;gap:5px;"><button class="btn-sm" onclick="restoreSkill('${sid}')">복구</button><button class="btn-sm btn-danger" onclick="permDeleteSkill('${sid}')">삭제</button></div>`;
+        } else {
+            item.innerHTML = `<span>${s.name}</span><button class="btn-sm btn-danger" onclick="softDeleteSkill('${sid}')">보관</button>`;
+        }
+        list.appendChild(item);
+    }
+};
 window.softDeleteSkill = (sid) => { state.skills[sid].hidden = true; DataManager.save(state); openRestoreSkillMode(); renderQuest(); };
 window.restoreSkill = (sid) => { state.skills[sid].hidden = false; DataManager.save(state); openRestoreSkillMode(); renderQuest(); };
 window.permDeleteSkill = (sid) => { openConfirmModal("영구 삭제?", () => { delete state.skills[sid]; DataManager.save(state); openRestoreSkillMode(); updateGlobalUI(); showToast("삭제됨"); }); };
