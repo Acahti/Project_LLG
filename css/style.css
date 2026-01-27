@@ -2,6 +2,9 @@
     --bg-dark: #121214; --bg-panel: #1e1e24;
     --accent: #4D96FF; --gold: #FFD700; --danger: #FF5C5C; --text: #e0e0e0;
     --border: #333;
+    /* [신규] 보조 버튼 색상 변수 */
+    --btn-sec-bg: rgba(255, 255, 255, 0.1); 
+    --btn-sec-text: #aaa;
     --safe-top: env(safe-area-inset-top, 20px);
     --safe-bottom: env(safe-area-inset-bottom, 20px);
     --base-font: 10px;
@@ -11,12 +14,16 @@ body.light-theme {
     --bg-dark: #f0f2f5; --bg-panel: #ffffff;
     --text: #222222; --border: #dddddd;
     --accent: #0056b3; --gold: #b8860b;
+    /* [신규] 라이트 모드용 보조 버튼 색상 */
+    --btn-sec-bg: #e0e0e0;
+    --btn-sec-text: #555;
 }
 
 * { box-sizing: border-box; }
 
 body {
     background: var(--bg-dark); color: var(--text);
+    /* 폰트 정렬을 위해 시스템 폰트를 우선순위 조정 가능하지만, 현재 유지 */
     font-family: 'Press Start 2P', 'Malgun Gothic', sans-serif;
     margin: 0; padding: 0;
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -31,7 +38,6 @@ body {
 
 main { flex: 1; overflow-y: auto; padding: 15px; padding-bottom: 80px; -webkit-overflow-scrolling: touch; }
 
-/* [수정] 헤더 레이아웃 고정 */
 header { 
     height: 55px; background: var(--bg-panel); 
     display: flex; justify-content: space-between; align-items: center; 
@@ -39,16 +45,11 @@ header {
     flex-shrink: 0; z-index: 100;
 }
 .header-left { display: flex; flex-direction: column; justify-content: center; gap: 4px; cursor: pointer; }
-.header-right { 
-    display: flex; 
-    flex-direction: row; /* 가로 배치 강제 */
-    align-items: center; 
-    gap: 15px; /* 골드와 설정 버튼 사이 간격 */
-}
+.header-right { display: flex; flex-direction: row; align-items: center; gap: 15px; } /* 가로 정렬 강제 */
 
 .header-job-title { font-size: 0.8em; color: var(--accent); }
 .header-job-name { font-size: 1.2em; color: var(--text); font-weight: bold; }
-.icon-btn { background: none; border: none; color: #888; cursor: pointer; padding: 5px; width: auto; border-bottom: none; margin: 0; }
+.icon-btn { background: none; border: none; color: #888; cursor: pointer; padding: 5px; width: auto; border-bottom: none; margin: 0; display:flex; align-items:center; }
 
 nav { 
     height: 65px; background: var(--bg-panel); border-top: 2px solid var(--border); 
@@ -93,14 +94,34 @@ nav {
 .inv-item { aspect-ratio: 1/1; background: rgba(0,0,0,0.1); border: 1px solid var(--border); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 2em; cursor: pointer; position: relative; }
 .inv-badge { position: absolute; bottom: 2px; right: 2px; font-size: 0.4em; color: #fff; background: #000; padding: 1px 3px; border-radius: 3px; }
 
-button { width: 100%; padding: 14px; border: none; background: var(--accent); color: #fff; font-family: inherit; cursor: pointer; border-bottom: 4px solid rgba(0,0,0,0.3); border-radius: 6px; margin-top: 5px; font-size: 1.1em; display: flex; align-items: center; justify-content: center; gap: 5px; }
+/* [수정] 버튼 스타일: 수직 정렬 문제 완벽 해결 */
+button { 
+    width: 100%; padding: 14px; border: none; 
+    background: var(--accent); color: #fff; 
+    font-family: inherit; cursor: pointer; 
+    border-bottom: 4px solid rgba(0,0,0,0.3); border-radius: 6px; 
+    margin-top: 5px; font-size: 1.1em; 
+    
+    /* Flexbox로 중앙 정렬 */
+    display: flex; align-items: center; justify-content: center; 
+    gap: 6px; 
+    line-height: 1; /* 폰트 자체 여백 제거 */
+}
 button:active { transform: translateY(2px); border-bottom-width: 2px; }
-.btn-sm { width: auto; padding: 8px 12px; font-size: 0.9em; border-bottom-width: 2px; margin: 0; }
+
+.btn-sm { width: auto; padding: 8px 12px; font-size: 0.9em; border-bottom-width: 2px; margin: 0; height: 36px; /* 높이 강제 고정 */ }
 .btn-text { background: transparent; border: none; color: #888; margin-top: 10px; border-bottom: none; font-size: 1em; }
 .btn-danger { background: var(--danger); }
 .btn-shop { background: var(--gold); color: #000; }
 .btn-edit { background: transparent; border: none; color: #888; padding: 5px; font-size: 1.2em; width: auto; border-bottom: none; margin: 0; }
 .btn-edit:hover { color: var(--accent); }
+
+/* [신규] 보조 버튼 (쓰레기통 등) - 테마 적응형 */
+.btn-secondary {
+    background: var(--btn-sec-bg);
+    color: var(--btn-sec-text);
+    border-bottom-color: rgba(0,0,0,0.1);
+}
 
 .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; justify-content: center; align-items: center; }
 .modal-content { background: var(--bg-panel); border: 2px solid var(--accent); padding: 25px; width: 90%; max-width: 360px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); display: flex; flex-direction: column; }
