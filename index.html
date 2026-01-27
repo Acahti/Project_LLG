@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>PROJECT: LLG v9.1</title>
+    <title>PROJECT: LLG v9.2</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="css/style.css?v=9.1">
+    <link rel="stylesheet" href="css/style.css?v=9.2">
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
@@ -19,7 +19,6 @@
                 <span id="header-job-name" class="header-job-name">직업</span>
             </div>
         </div>
-        
         <div class="header-right">
             <div class="flex-center">
                 <span class="material-icons-round" style="color:var(--gold); font-size:18px;">monetization_on</span> 
@@ -40,8 +39,12 @@
             <div class="card header-card" style="margin-top:15px;">
                 <span>능력치 & 스킬</span>
                 <div class="flex-center">
-                    <button class="btn-sm" style="background:#444; color:#aaa;" onclick="openRestoreSkillMode()">🗑️</button>
-                    <button class="btn-sm" onclick="openSkillCreateModal()">+ 생성</button>
+                    <button class="btn-sm btn-secondary" onclick="openRestoreSkillMode()">
+                        <span class="material-icons-round" style="font-size:1.2em;">delete</span>
+                    </button>
+                    <button class="btn-sm" onclick="openSkillCreateModal()">
+                        <span class="material-icons-round" style="font-size:1.2em;">add</span> 생성
+                    </button>
                 </div>
             </div>
             <div id="stats-list" class="stats-accordion"></div>
@@ -50,7 +53,9 @@
         <section id="tab-quest" class="tab-screen">
             <div class="card header-card">
                 <span>의뢰 게시판</span>
-                <button class="btn-sm" onclick="openQuestManager()">+ 의뢰 관리</button>
+                <button class="btn-sm" onclick="openQuestManager()">
+                    <span class="material-icons-round" style="font-size:1.2em;">add</span> 의뢰 관리
+                </button>
             </div>
             <div id="quest-container"></div>
             <div id="empty-quest-msg" style="text-align:center; color:#888; font-size:0.9em; margin-top:20px; display:none;">
@@ -71,7 +76,9 @@
         <section id="tab-inventory" class="tab-screen">
             <div class="card header-card">
                 <span>보관함</span>
-                <button class="btn-sm" onclick="openCreateItemModal()">+ 기록 추가</button>
+                <button class="btn-sm" onclick="openCreateItemModal()">
+                    <span class="material-icons-round" style="font-size:1.2em;">add</span> 기록 추가
+                </button>
             </div>
             <div id="inventory-grid" class="inv-grid"></div>
         </section>
@@ -79,7 +86,9 @@
         <section id="tab-shop" class="tab-screen">
             <div class="card header-card">
                 <span>환전소</span>
-                <button class="btn-sm" onclick="openCreateShopItemModal()">+ 상품 추가</button>
+                <button class="btn-sm" onclick="openCreateShopItemModal()">
+                    <span class="material-icons-round" style="font-size:1.2em;">add</span> 상품 추가
+                </button>
             </div>
             <div id="shop-container"></div>
         </section>
