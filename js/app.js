@@ -27,7 +27,7 @@ function drawRadarChart() {
         ctx.closePath(); ctx.stroke();
     }
 
-    // 데이터 그리기 (순서: STR, DEX, INT, WIS, VIT)
+    // 데이터 그리기
     const stats = ['STR','DEX','INT','WIS','VIT'];
     const maxVal = Math.max(20, ...Object.values(state.cores).map(c=>c.level)) * 1.2;
 
@@ -70,13 +70,13 @@ function updateGlobalUI() {
     for (let cid in state.cores) totalLv += state.cores[cid].level;
     state.totalLevel = totalLv;
 
-    // 상단바 갱신 (칭호 + 직업)
+    // 상단바 갱신
     document.getElementById('ui-gold').innerText = `${state.gold} G`;
     document.getElementById('header-job-title').innerText = `<${state.currentTitle}>`;
     document.getElementById('header-job-name').innerText = state.currentJob;
     document.getElementById('chart-total-level').innerText = `Lv.${totalLv}`;
     
-    checkAchievements(); // ★ 조건 체크 실행
+    checkAchievements();
     drawRadarChart();
 }
 
@@ -85,7 +85,6 @@ function renderCharacter() {
     const list = document.getElementById('stats-list');
     list.innerHTML = '';
 
-    // 순서대로 그리기 (STR -> DEX...)
     const order = ['STR', 'DEX', 'INT', 'WIS', 'VIT'];
     
     order.forEach(cid => {
@@ -113,7 +112,6 @@ function renderCharacter() {
                 const skill = state.skills[sid];
                 if (skill.mastery !== mid || skill.hidden) continue;
                 
-                // [추가] 퍼센트 계산 (3600초 기준)
                 const percent = Math.floor((skill.seconds % 3600) / 3600 * 100);
                 
                 skillHtml += `
@@ -167,7 +165,6 @@ function renderInventory() {
     grid.innerHTML = state.inventory.length === 0 ? '<div style="grid-column:1/-1; text-align:center; color:#555; padding:20px;">비어있음</div>' : '';
     
     state.inventory.forEach((item, idx) => {
-        // 전리품은 배경색 다르게 표시 가능
         const bg = item.type === 'record' ? '#222' : '#111'; 
         const badge = item.type === 'record' ? '<span class="inv-badge" style="color:#6BCB77">기록</span>' : '';
         
@@ -200,50 +197,28 @@ function renderShop() {
     });
 }
 
-// --- [3] 조건(Achievement) 시스템 (사용자 정의 구역) ---
+// --- [3] 조건 시스템 ---
 function checkAchievements() {
     let updated = false;
-
-    // 예시 1: STR 10 이상 -> '전사' 직업 해금
     if (state.cores.STR.level >= 10 && !state.unlockedJobs.includes("전사")) {
-        state.unlockedJobs.push("전사");
-        alert("🎉 직업 해금: [전사]\n조건: 힘(STR) Lv.10 달성");
-        updated = true;
+        state.unlockedJobs.push("전사"); alert("🎉 직업 해금: [전사]\n조건: 힘(STR) Lv.10 달성"); updated = true;
     }
-
-    // 예시 2: INT 10 이상 -> '학자' 직업 해금
     if (state.cores.INT.level >= 10 && !state.unlockedJobs.includes("학자")) {
-        state.unlockedJobs.push("학자");
-        alert("🎉 직업 해금: [학자]\n조건: 지능(INT) Lv.10 달성");
-        updated = true;
+        state.unlockedJobs.push("학자"); alert("🎉 직업 해금: [학자]\n조건: 지능(INT) Lv.10 달성"); updated = true;
     }
-
-    // 예시 3: 총 레벨 100 달성 -> '고인물' 칭호
     if (state.totalLevel >= 100 && !state.unlockedTitles.includes("고인물")) {
-        state.unlockedTitles.push("고인물");
-        alert("🏆 칭호 획득: [고인물]\n조건: 총 레벨 100 달성");
-        updated = true;
+        state.unlockedTitles.push("고인물"); alert("🏆 칭호 획득: [고인물]\n조건: 총 레벨 100 달성"); updated = true;
     }
-
     if(updated) DataManager.save(state);
 }
 
-// --- [4] 인벤토리 아이템 생성 (기록) ---
+// --- [4] 인벤토리 생성 ---
 window.openCreateItemModal = () => {
-    const name = prompt("기록할 아이템의 이름은? (예: 읽은 책 제목)");
-    if(!name) return;
-    const desc = prompt("상세 설명? (예: 감상평, 공부한 챕터)");
-    if(!desc) return;
-    const icon = prompt("아이콘 이모지 하나만 입력하세요 (예: 📕, 💻)", "📕");
-
-    state.inventory.push({
-        type: 'record',
-        icon: icon || '📦',
-        name: name,
-        desc: desc || '설명 없음'
-    });
-    DataManager.save(state);
-    renderInventory();
+    const name = prompt("기록할 아이템 이름 (예: 읽은 책)"); if(!name) return;
+    const desc = prompt("상세 설명"); if(!desc) return;
+    const icon = prompt("아이콘 이모지", "📕");
+    state.inventory.push({ type: 'record', icon: icon || '📦', name: name, desc: desc || '설명 없음' });
+    DataManager.save(state); renderInventory();
 };
 
 // --- [5] 스킬 관리 모달 ---
@@ -254,17 +229,12 @@ window.openCreateSkillMode = () => {
     const chipGroup = document.getElementById('core-select-group');
     chipGroup.innerHTML = '';
     selectedCoreForCreate = null;
-    
-    // 순서대로 칩 생성
     ['STR','DEX','INT','WIS','VIT'].forEach(cid => {
         const chip = document.createElement('div');
-        chip.className = 'chip';
-        chip.innerText = cid;
+        chip.className = 'chip'; chip.innerText = cid;
         chip.onclick = () => {
             document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
-            chip.classList.add('active');
-            selectedCoreForCreate = cid;
-            updateMasterySelect(cid);
+            chip.classList.add('active'); selectedCoreForCreate = cid; updateMasterySelect(cid);
         };
         chipGroup.appendChild(chip);
     });
@@ -272,16 +242,11 @@ window.openCreateSkillMode = () => {
 };
 
 function updateMasterySelect(coreId) {
-    const select = document.getElementById('new-mastery-select');
-    select.innerHTML = '';
+    const select = document.getElementById('new-mastery-select'); select.innerHTML = '';
     if(!coreId) { select.innerHTML = '<option value="">-- 스탯 선택 필요 --</option>'; return; }
-    
     let count = 0;
     for(let mid in state.masteries) {
-        if(state.masteries[mid].core === coreId) {
-            select.innerHTML += `<option value="${mid}">${state.masteries[mid].name}</option>`;
-            count++;
-        }
+        if(state.masteries[mid].core === coreId) { select.innerHTML += `<option value="${mid}">${state.masteries[mid].name}</option>`; count++; }
     }
     select.innerHTML += '<option value="NEW_MASTERY">+ 새 마스터리 생성</option>';
     if(count === 0) select.value = "NEW_MASTERY";
@@ -296,7 +261,6 @@ window.createSkillAction = () => {
     let mid = document.getElementById('new-mastery-select').value;
     const mInput = document.getElementById('new-mastery-input').value.trim();
     const sName = document.getElementById('new-skill-name').value.trim();
-
     if(!mid) return alert("마스터리를 선택하세요.");
     if(mid === 'NEW_MASTERY' && !mInput) return alert("마스터리 이름을 입력하세요.");
     if(!sName) return alert("스킬 이름을 입력하세요.");
@@ -306,7 +270,6 @@ window.createSkillAction = () => {
         state.masteries[mid] = { name: mInput, core: selectedCoreForCreate, level: 0 };
     }
     state.skills['s'+Date.now()] = { name: sName, mastery: mid, seconds: 0, level: 0, hidden: false };
-    
     DataManager.save(state);
     closeModal('modal-create-skill');
     updateGlobalUI(); renderQuest(); renderCharacter();
@@ -318,35 +281,72 @@ window.openRestoreSkillMode = () => {
     const list = document.getElementById('deleted-skill-list');
     list.innerHTML = '';
     
+    let hasDeleted = false;
+
     for(let sid in state.skills) {
         const skill = state.skills[sid];
         const item = document.createElement('div');
         item.className = 'list-item';
+        
         if(skill.hidden) {
-            item.innerHTML = `<span style="text-decoration:line-through; color:#666">${skill.name}</span><button class="btn-sm" style="width:auto" onclick="restoreSkill('${sid}')">복구</button>`;
+            // [수정] 삭제된 스킬: 복구 vs 영구 삭제 버튼 노출
+            hasDeleted = true;
+            item.innerHTML = `
+                <span style="text-decoration:line-through; color:#666; font-size:9px;">${skill.name}</span>
+                <div style="display:flex; gap:5px;">
+                    <button class="btn-sm" style="width:auto" onclick="restoreSkill('${sid}')">복구</button>
+                    <button class="btn-sm btn-danger" style="width:auto" onclick="permanentDeleteSkill('${sid}')">영구삭제</button>
+                </div>
+            `;
+            list.appendChild(item);
         } else {
-            item.innerHTML = `<span>${skill.name}</span><button class="btn-sm btn-danger" style="width:auto" onclick="deleteSkill('${sid}')">삭제</button>`;
+            // 활성 스킬: 보관(삭제) 버튼 노출
+            item.innerHTML = `
+                <span>${skill.name}</span>
+                <button class="btn-sm btn-danger" style="width:auto" onclick="softDeleteSkill('${sid}')">보관</button>
+            `;
+            list.appendChild(item);
         }
-        list.appendChild(item);
     }
 };
-window.deleteSkill = (sid) => { state.skills[sid].hidden = true; DataManager.save(state); openRestoreSkillMode(); renderQuest(); };
-window.restoreSkill = (sid) => { state.skills[sid].hidden = false; DataManager.save(state); openRestoreSkillMode(); renderQuest(); };
 
-// --- [6] 기타 설정 및 칭호/직업 변경 ---
+// [기능] 보관(Soft Delete)
+window.softDeleteSkill = (sid) => { 
+    state.skills[sid].hidden = true; 
+    DataManager.save(state); 
+    openRestoreSkillMode(); 
+    renderQuest(); 
+};
+
+// [기능] 복구(Restore)
+window.restoreSkill = (sid) => { 
+    state.skills[sid].hidden = false; 
+    DataManager.save(state); 
+    openRestoreSkillMode(); 
+    renderQuest(); 
+};
+
+// [기능] 영구 삭제(Hard Delete) - NEW
+window.permanentDeleteSkill = (sid) => {
+    if(confirm(`[${state.skills[sid].name}] 스킬을 완전히 삭제하시겠습니까?\n쌓았던 레벨과 수련 시간이 모두 사라지며 복구할 수 없습니다.`)) {
+        delete state.skills[sid]; // 객체에서 제거
+        DataManager.save(state);
+        openRestoreSkillMode(); // 목록 갱신
+        renderQuest();
+        updateGlobalUI(); // 총 레벨 및 스탯 갱신 필요
+    }
+};
+
+// --- [6] 기타 설정 ---
 window.openSettingsModal = () => document.getElementById('modal-settings').style.display = 'flex';
 window.openTitleModal = () => {
     document.getElementById('modal-title').style.display = 'flex';
-    
-    // 칭호 목록
     const tList = document.getElementById('title-list');
     tList.innerHTML = '<div style="font-size:9px; color:#aaa; margin-bottom:5px;">칭호 (Title)</div>';
     state.unlockedTitles.forEach(t => {
         const cls = state.currentTitle === t ? 'active' : '';
         tList.innerHTML += `<div class="list-item ${cls}" onclick="equipTitle('${t}')">${t}</div>`;
     });
-
-    // 직업 목록
     tList.innerHTML += '<div style="font-size:9px; color:#aaa; margin-top:15px; margin-bottom:5px;">직업 (Job)</div>';
     state.unlockedJobs.forEach(j => {
         const cls = state.currentJob === j ? 'active' : '';
@@ -379,8 +379,6 @@ document.getElementById('btn-stop').onclick = () => {
     state.gold += sessionSec;
     state.skills[activeSkillId].seconds += sessionSec;
 
-    // [전리품 획득 로직]
-    // 60초 이상 수련 시 확률적으로 드랍
     if (sessionSec > 60 && Math.random() > 0.7) {
         const loots = ["💎 마나석", "📜 고대 문서", "💊 체력 포션"];
         const lootName = loots[Math.floor(Math.random()*loots.length)];
@@ -393,10 +391,7 @@ document.getElementById('btn-stop').onclick = () => {
     sessionSec = 0; activeSkillId = null;
     document.getElementById('battle-quest-name').innerText = "-";
     document.getElementById('battle-timer').innerText = "00:00:00";
-    
-    DataManager.save(state);
-    updateGlobalUI();
-    switchTab('quest');
+    DataManager.save(state); updateGlobalUI(); switchTab('quest');
 };
 
 function switchTab(target) {
@@ -414,19 +409,13 @@ function switchTab(target) {
 window.startBattle = startBattle;
 document.querySelectorAll('.nav-btn').forEach(btn => btn.onclick = () => switchTab(btn.dataset.target));
 
-// 설정 버튼
 document.getElementById('btn-export').onclick = () => DataManager.export(state);
 document.getElementById('btn-reset').onclick = () => DataManager.reset();
 document.getElementById('btn-import').onclick = () => document.getElementById('file-input').click();
 document.getElementById('file-input').onchange = (e) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
-        try { state = JSON.parse(e.target.result); DataManager.save(state); location.reload(); }
-        catch { alert("파일 오류"); }
-    };
+    reader.onload = (e) => { try { state = JSON.parse(e.target.result); DataManager.save(state); location.reload(); } catch { alert("파일 오류"); } };
     reader.readAsText(e.target.files[0]);
 };
 
-// 시작
-updateGlobalUI();
-renderCharacter();
+updateGlobalUI(); renderCharacter();
