@@ -1,38 +1,24 @@
-const STORAGE_KEY = 'LLG_DATA_V3_FINAL';
+const STORAGE_KEY = 'LLG_DATA_V4_FINAL';
 
-// 초기 데이터
+// 초기 데이터 (완전 빈 상태)
 const DEFAULT_STATE = {
     gold: 0,
     totalLevel: 0,
-    currentTitle: "입문자",
-    unlockedTitles: ["입문자"],
-    inventory: [], // { name: "아이콘", desc: "설명" }
+    currentTitle: "모험가",
+    unlockedTitles: ["모험가"],
+    inventory: [], 
     
-    // 5대 스탯 (오각형)
+    // 코어 스탯은 구조상 필요하므로 유지
     cores: {
-        INT: { name: "지능 (INT)", level: 0, color: "#4D96FF" }, // 파랑
-        STR: { name: "힘 (STR)", level: 0, color: "#FF5C5C" },   // 빨강
-        WIS: { name: "지혜 (WIS)", level: 0, color: "#FFD700" }, // 노랑
-        DEX: { name: "솜씨 (DEX)", level: 0, color: "#6BCB77" }, // 초록
-        VIT: { name: "체력 (VIT)", level: 0, color: "#FF9F43" }  // 주황
+        INT: { name: "지능 (INT)", level: 0, color: "#4D96FF" },
+        STR: { name: "힘 (STR)", level: 0, color: "#FF5C5C" },
+        WIS: { name: "지혜 (WIS)", level: 0, color: "#FFD700" },
+        DEX: { name: "솜씨 (DEX)", level: 0, color: "#6BCB77" },
+        VIT: { name: "체력 (VIT)", level: 0, color: "#FF9F43" }
     },
     
-    masteries: {
-        m1: { name: "언어학", core: "INT", level: 0 },
-        m2: { name: "개발", core: "INT", level: 0 },
-        m3: { name: "근력", core: "STR", level: 0 },
-        m4: { name: "투자", core: "WIS", level: 0 },
-        m5: { name: "유산소", core: "VIT", level: 0 },
-        m6: { name: "기술", core: "DEX", level: 0 }
-    },
-    
-    skills: {
-        // hidden: true면 목록에서 숨김 (삭제 상태)
-        s1: { name: "토익", mastery: "m1", seconds: 0, level: 0, hidden: false },
-        s2: { name: "파이썬", mastery: "m2", seconds: 0, level: 0, hidden: false },
-        s3: { name: "스쿼트", mastery: "m3", seconds: 0, level: 0, hidden: false },
-        s4: { name: "러닝", mastery: "m5", seconds: 0, level: 0, hidden: false }
-    }
+    masteries: {}, // 빈 객체
+    skills: {}     // 빈 객체
 };
 
 export const SHOP_ITEMS = [
@@ -45,21 +31,17 @@ export const DataManager = {
     load: () => {
         const json = localStorage.getItem(STORAGE_KEY);
         if(!json) return JSON.parse(JSON.stringify(DEFAULT_STATE));
-        
         const data = JSON.parse(json);
-        // 마이그레이션 (구버전 호환)
-        if(!data.cores.DEX) data.cores.DEX = DEFAULT_STATE.cores.DEX;
-        if(!data.cores.VIT) data.cores.VIT = DEFAULT_STATE.cores.VIT;
-        if(!data.inventory) data.inventory = [];
-        if(!data.unlockedTitles) data.unlockedTitles = ["입문자"];
-        
+        // 마이그레이션 로직
+        if(!data.masteries) data.masteries = {};
+        if(!data.skills) data.skills = {};
         return data;
     },
     save: (state) => {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     },
     reset: () => {
-        if(confirm("모든 데이터를 초기화하시겠습니까?")) {
+        if(confirm("정말 초기화하시겠습니까? 모든 기록이 사라집니다.")) {
             localStorage.removeItem(STORAGE_KEY);
             location.reload();
         }
