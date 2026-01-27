@@ -5,7 +5,7 @@ let state = DataManager.load();
 let timer = null, sessionSec = 0, activeQuestId = null;
 let selectedCoreForCreate = null, editingSkillId = null, editingMasteryId = null, editingItemId = null;
 
-// [초기화] 설정 적용
+// [초기화] 설정 적용 및 실행
 if(!state.settings) state.settings = { theme: 'dark', fontSize: 10 };
 const initApp = () => {
     document.body.className = state.settings.theme + '-theme';
@@ -66,11 +66,12 @@ const bindDataEvents = () => {
     };
 };
 
-// [코어] UI 업데이트
+// [코어] 차트 및 UI 갱신
 function drawRadarChart() {
     const cvs = document.getElementById('stat-radar'); if (!cvs) return;
     const ctx = cvs.getContext('2d'), w = cvs.width, h = cvs.height, cx = w/2, cy = h/2, r = w/2 - 40;
     ctx.clearRect(0,0,w,h);
+    
     // Grid
     ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--border').trim(); ctx.lineWidth = 1;
     for(let i=1; i<=5; i++) {
@@ -103,9 +104,11 @@ function drawRadarChart() {
 
 function updateGlobalUI() {
     let tl = 0;
+    // 레벨 재계산
     for(let s in state.skills) state.skills[s].level = Math.floor(state.skills[s].seconds/3600);
     for(let m in state.masteries) state.masteries[m].level = 0;
     for(let c in state.cores) state.cores[c].level = 0;
+    
     for(let s in state.skills) {
         const sk = state.skills[s]; if(sk.hidden || !sk.mastery) continue;
         const ma = state.masteries[sk.mastery]; if(!ma) continue;
@@ -113,10 +116,12 @@ function updateGlobalUI() {
     }
     for(let c in state.cores) tl += state.cores[c].level;
     state.totalLevel = tl;
+    
     document.getElementById('ui-gold').innerText = `${state.gold} G`;
     document.getElementById('header-job-title').innerText = `<${state.currentTitle}>`;
     document.getElementById('header-job-name').innerText = state.currentJob;
     document.getElementById('chart-total-level').innerText = `Lv.${tl}`;
+    
     checkAchievements(); drawRadarChart();
 }
 
@@ -179,7 +184,7 @@ function renderShop() {
     });
 }
 window.buyItem = (id, cost) => {
-    if(state.gold >= cost) openConfirmModal("구매", "정말 구매하시겠습니까?", () => { state.gold -= cost; DataManager.save(state); updateGlobalUI(); renderShop(); showToast("구매가 완료되었습니다."); });
+    if(state.gold >= cost) openConfirmModal("구매 확인", "정말 구매하시겠습니까?", () => { state.gold -= cost; DataManager.save(state); updateGlobalUI(); renderShop(); showToast("구매가 완료되었습니다."); });
     else showToast("골드가 부족합니다.");
 };
 
