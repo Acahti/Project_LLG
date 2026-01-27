@@ -35,3 +35,47 @@ nav { height: 65px; background: var(--bg-panel); border-top: 2px solid #333; pos
 #phaser-root { width: 100%; height: 300px; border: 2px solid #444; margin-bottom: 15px; }
 .battle-ui { text-align: center; }
 #battle-timer { font-size: 24px; margin: 10px 0; }
+
+
+/* --- [PC/태블릿 화면 최적화] --- */
+@media (min-width: 768px) {
+    body {
+        /* 스마트폰 크기로 강제 고정 */
+        max-width: 420px;
+        height: 90vh; /* 화면 꽉 채우지 않고 위아래 여백 */
+        margin: 5vh auto; /* 화면 정중앙 배치 */
+        
+        /* 스마트폰 외형 꾸미기 */
+        border: 8px solid #333;
+        border-radius: 20px;
+        box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+        background-color: var(--bg-dark);
+        position: relative;
+        overflow: hidden; /* 둥근 모서리 밖으로 내용 안 튀어나가게 */
+    }
+
+    /* 하단 네비게이션도 가운데로 모으기 */
+    nav {
+        max-width: 420px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-bottom-left-radius: 12px; /* body border 고려 */
+        border-bottom-right-radius: 12px;
+        bottom: 5vh; /* body margin 고려해서 위치 조정 */
+        border-top: 2px solid #444;
+    }
+
+    /* PC 배경색을 어둡게 처리해서 앱에 집중되게 */
+    html {
+        background-color: #000000;
+        background-image: 
+            radial-gradient(#333 1px, transparent 1px),
+            radial-gradient(#222 1px, transparent 1px);
+        background-size: 20px 20px;
+        background-position: 0 0, 10px 10px;
+        height: 100%;
+    }
+    
+    /* 스크롤바 숨기기 (깔끔하게) */
+    ::-webkit-scrollbar { width: 0px; background: transparent; }
+}
