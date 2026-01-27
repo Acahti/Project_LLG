@@ -1,4 +1,4 @@
-import { DataManager, SHOP_ITEMS } from './data.js';
+import { DataManager } from './data.js';
 import { BattleManager } from './battle.js';
 
 let state = DataManager.load();
@@ -7,28 +7,27 @@ let sessionSec = 0;
 let activeQuestId = null;
 let selectedCoreForCreate = null;
 
-// --- [1] 세련된 알림 시스템 (Toast) ---
-function showToast(msg) {
+// --- [1] 알림 시스템 (window에 등록) ---
+window.showToast = (msg) => {
     const container = document.getElementById('toast-container');
+    if (!container) return; // 안전장치
+    
     const div = document.createElement('div');
     div.className = 'toast';
     div.innerText = msg;
     container.appendChild(div);
 
-    // 2.5초 뒤 사라짐
     setTimeout(() => {
         div.classList.add('hide');
         div.addEventListener('animationend', () => div.remove());
     }, 2500);
-}
+};
 
-// [신규] 커스텀 확인창 (Confirm Modal)
 window.openConfirmModal = (msg, callback) => {
     const modal = document.getElementById('modal-confirm');
     document.getElementById('confirm-msg').innerText = msg;
     modal.style.display = 'flex';
     
-    // 기존 이벤트 제거 후 새 이벤트 연결 (중복 방지)
     const btnYes = document.getElementById('btn-confirm-yes');
     const newBtnYes = btnYes.cloneNode(true);
     btnYes.parentNode.replaceChild(newBtnYes, btnYes);
@@ -40,7 +39,6 @@ window.openConfirmModal = (msg, callback) => {
 };
 window.closeConfirmModal = () => document.getElementById('modal-confirm').style.display = 'none';
 
-
 // --- [2] 차트 및 UI ---
 function drawRadarChart() {
     const canvas = document.getElementById('stat-radar');
@@ -50,6 +48,8 @@ function drawRadarChart() {
     const cx = w/2, cy = h/2, radius = w/2 - 40;
 
     ctx.clearRect(0,0,w,h);
+    
+    // 배경 오각형
     ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
     for (let i=1; i<=5; i++) {
         ctx.beginPath();
@@ -61,19 +61,24 @@ function drawRadarChart() {
         ctx.closePath(); ctx.stroke();
     }
 
+    // 데이터 오각형
     const stats = ['STR','DEX','INT','WIS','VIT'];
-    const maxVal = Math.max(20, ...Object.values(state.cores).map(c=>c.level)) * 1.2;
+    
+    // [수정] 최대값 계산 시 안전장치 추가 (0일 경우 대비)
+    const levels = stats.map(key => state.cores[key] ? state.cores[key].level : 0);
+    const maxVal = Math.max(20, ...levels) * 1.2;
 
     ctx.beginPath();
     ctx.fillStyle = 'rgba(77,150,255,0.4)'; ctx.strokeStyle = '#4D96FF'; ctx.lineWidth = 2;
     stats.forEach((key,i) => {
-        const val = state.cores[key].level;
+        const val = state.cores[key] ? state.cores[key].level : 0;
         const r = (val/maxVal)*radius;
         const angle = (Math.PI*2*i)/5 - Math.PI/2;
         ctx.lineTo(cx+r*Math.cos(angle), cy+r*Math.sin(angle));
     });
     ctx.closePath(); ctx.fill(); ctx.stroke();
 
+    // 텍스트 라벨
     ctx.fillStyle = '#888'; ctx.font = '10px "Press Start 2P"'; ctx.textAlign = 'center';
     stats.forEach((key,i) => {
         const angle = (Math.PI*2*i)/5 - Math.PI/2;
@@ -86,7 +91,11 @@ function drawRadarChart() {
 function updateGlobalUI() {
     let totalLv = 0;
     
-    for (let sid in state.skills) state.skills[sid].level = Math.floor(state.skills[sid].seconds / 3600);
+    // 레벨 재계산
+    for (let sid in state.skills) {
+        state.skills[sid].level = Math.floor(state.skills[sid].seconds / 3600);
+    }
+    
     for (let mid in state.masteries) state.masteries[mid].level = 0;
     for (let cid in state.cores) state.cores[cid].level = 0;
 
@@ -102,6 +111,7 @@ function updateGlobalUI() {
     for (let cid in state.cores) totalLv += state.cores[cid].level;
     state.totalLevel = totalLv;
 
+    // 상단바 업데이트
     document.getElementById('ui-gold').innerText = `${state.gold} G`;
     document.getElementById('header-job-title').innerText = `<${state.currentTitle}>`;
     document.getElementById('header-job-name').innerText = state.currentJob;
@@ -118,6 +128,8 @@ function renderCharacter() {
     const order = ['STR', 'DEX', 'INT', 'WIS', 'VIT'];
     
     order.forEach(cid => {
+        if (!state.cores[cid]) return; // 안전장치
+
         const core = state.cores[cid];
         const item = document.createElement('div');
         item.className = 'stat-item';
@@ -132,13 +144,16 @@ function renderCharacter() {
 
         const detailBox = item.querySelector(`#detail-${cid}`);
         let hasContent = false;
+
         for (let mid in state.masteries) {
             const mastery = state.masteries[mid];
             if (mastery.core !== cid) continue;
+            
             let skillHtml = '';
             for (let sid in state.skills) {
                 const skill = state.skills[sid];
                 if (skill.mastery !== mid || skill.hidden) continue;
+                
                 const percent = Math.floor((skill.seconds % 3600) / 3600 * 100);
                 skillHtml += `
                     <div class="skill-row">
@@ -166,9 +181,11 @@ function renderQuest() {
     for (let qid in state.quests) {
         const quest = state.quests[qid];
         const linkedSkill = state.skills[quest.linkedSkillId];
+        
+        // 연결된 스킬이 없거나 삭제됐으면 표시 안함
         if (!linkedSkill || linkedSkill.hidden) continue;
+        
         count++;
-        const percent = Math.floor((linkedSkill.seconds % 3600) / 3600 * 100);
         const card = document.createElement('div');
         card.className = 'card quest-card';
         card.innerHTML = `
@@ -192,7 +209,7 @@ function renderInventory() {
     state.inventory.forEach(item => {
         const bg = item.type === 'record' ? '#222' : '#111'; 
         const badge = item.type === 'record' ? '<span class="inv-badge" style="color:#6BCB77">기록</span>' : '';
-        // 토스트로 내용 보여주기
+        // [수정] showToast가 이제 전역함수라 정상 작동함
         grid.innerHTML += `<div class="inv-item" style="background:${bg}" onclick="showToast('[${item.name}] ${item.desc}')">${item.icon} ${badge}</div>`;
     });
 }
@@ -203,7 +220,12 @@ function renderShop() {
     state.shopItems.forEach(item => {
         const div = document.createElement('div');
         div.className = 'card';
-        div.style.display = 'flex'; div.style.justifyContent = 'space-between'; div.style.alignItems = 'center';
+        
+        // [수정] 스타일을 JS로 안전하게 적용
+        div.style.display = 'flex';
+        div.style.justifyContent = 'space-between';
+        div.style.alignItems = 'center';
+        
         div.innerHTML = `
             <div style="flex:1"><span>${item.name}</span></div>
             <div style="display:flex; gap:5px; align-items:center;">
@@ -211,6 +233,8 @@ function renderShop() {
                 <button class="btn-sm btn-danger" style="width:auto; padding:8px;" onclick="confirmDeleteShopItem('${item.id}')">🗑️</button>
             </div>
         `;
+        
+        // onclick 이벤트 핸들러 (클로저)
         div.querySelector('.btn-shop').onclick = () => {
             if (state.gold >= item.cost) {
                 openConfirmModal(`'${item.name}' 구매하시겠습니까?`, () => {
@@ -226,152 +250,108 @@ function renderShop() {
     });
 }
 
-// --- [4] 신분(칭호/직업) 관리 (탭 분리) ---
-window.openTitleModal = () => {
-    document.getElementById('modal-title').style.display = 'flex';
-    switchTitleTab('title'); // 기본 탭
-};
+// --- [4] 신분, 인벤, 퀘스트, 스킬 등 모달 로직 (기존과 동일) ---
+window.openTitleModal = () => { document.getElementById('modal-title').style.display = 'flex'; switchTitleTab('title'); };
 window.switchTitleTab = (tabName) => {
-    // 탭 버튼 스타일 활성화
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     document.getElementById(`tab-btn-${tabName}`).classList.add('active');
-
     const list = document.getElementById('title-list-container');
     list.innerHTML = '';
-
     if (tabName === 'title') {
-        // 칭호 목록 렌더링
-        if(state.unlockedTitles.length === 0) list.innerHTML = '<div style="padding:10px; color:#555;">획득한 칭호가 없습니다.</div>';
+        if(state.unlockedTitles.length === 0) list.innerHTML = '<div style="padding:10px; color:#555;">없음</div>';
         state.unlockedTitles.forEach(t => {
             const cls = state.currentTitle === t ? 'active' : '';
-            list.innerHTML += `<div class="list-item ${cls}" onclick="equipTitle('${t}')">
-                <span>${t}</span>${cls ? '<span class="material-icons-round" style="font-size:14px;">check</span>' : ''}
-            </div>`;
+            list.innerHTML += `<div class="list-item ${cls}" onclick="equipTitle('${t}')"><span>${t}</span>${cls?'✔':''}</div>`;
         });
     } else {
-        // 직업 목록 렌더링
-        if(state.unlockedJobs.length === 0) list.innerHTML = '<div style="padding:10px; color:#555;">해금된 직업이 없습니다.</div>';
+        if(state.unlockedJobs.length === 0) list.innerHTML = '<div style="padding:10px; color:#555;">없음</div>';
         state.unlockedJobs.forEach(j => {
             const cls = state.currentJob === j ? 'active' : '';
-            list.innerHTML += `<div class="list-item ${cls}" onclick="equipJob('${j}')">
-                <span>${j}</span>${cls ? '<span class="material-icons-round" style="font-size:14px;">check</span>' : ''}
-            </div>`;
+            list.innerHTML += `<div class="list-item ${cls}" onclick="equipJob('${j}')"><span>${j}</span>${cls?'✔':''}</div>`;
         });
     }
 };
-window.equipTitle = (t) => { 
-    state.currentTitle = t; DataManager.save(state); updateGlobalUI(); 
-    switchTitleTab('title'); // 리프레시
-    showToast(`칭호 변경: [${t}]`);
-};
-window.equipJob = (j) => { 
-    state.currentJob = j; DataManager.save(state); updateGlobalUI(); 
-    switchTitleTab('job'); // 리프레시
-    showToast(`직업 변경: [${j}]`);
-};
+window.equipTitle = (t) => { state.currentTitle = t; DataManager.save(state); updateGlobalUI(); switchTitleTab('title'); showToast(`칭호: [${t}]`); };
+window.equipJob = (j) => { state.currentJob = j; DataManager.save(state); updateGlobalUI(); switchTitleTab('job'); showToast(`직업: [${j}]`); };
 
-
-// --- [5] 인벤토리 생성 (모달 적용) ---
-window.openCreateItemModal = () => {
-    document.getElementById('modal-create-item').style.display = 'flex';
-    document.getElementById('new-item-name').value = '';
-    document.getElementById('new-item-desc').value = '';
-};
+window.openCreateItemModal = () => { document.getElementById('modal-create-item').style.display = 'flex'; document.getElementById('new-item-name').value = ''; };
 window.createItemAction = () => {
     const name = document.getElementById('new-item-name').value.trim();
     const desc = document.getElementById('new-item-desc').value.trim();
     const icon = document.getElementById('new-item-icon').value.trim() || '📦';
-    
-    if(!name) return showToast("이름을 입력하세요.");
-    
-    state.inventory.push({ type: 'record', icon: icon, name: name, desc: desc || '설명 없음' });
-    DataManager.save(state); 
-    renderInventory();
-    closeModal('modal-create-item');
-    showToast("기록이 추가되었습니다.");
+    if(!name) return showToast("이름 입력");
+    state.inventory.push({ type: 'record', icon, name, desc: desc||'설명 없음' });
+    DataManager.save(state); renderInventory(); closeModal('modal-create-item'); showToast("기록됨");
 };
 
-// --- [6] 삭제 로직 (Confirm Modal 사용) ---
-window.confirmDeleteQuest = (qid) => {
-    openConfirmModal("이 의뢰를 삭제하시겠습니까?", () => {
-        delete state.quests[qid];
-        DataManager.save(state);
-        renderQuest();
-        showToast("의뢰가 삭제되었습니다.");
-    });
-};
-window.confirmDeleteShopItem = (itemId) => {
-    openConfirmModal("이 상품을 삭제하시겠습니까?", () => {
-        state.shopItems = state.shopItems.filter(item => item.id !== itemId);
-        DataManager.save(state);
-        renderShop();
-        showToast("상품이 삭제되었습니다.");
-    });
-};
+window.confirmDeleteQuest = (qid) => { openConfirmModal("삭제하시겠습니까?", () => { delete state.quests[qid]; DataManager.save(state); renderQuest(); showToast("삭제됨"); }); };
+window.confirmDeleteShopItem = (itemId) => { openConfirmModal("삭제하시겠습니까?", () => { state.shopItems = state.shopItems.filter(i=>i.id!==itemId); DataManager.save(state); renderShop(); showToast("삭제됨"); }); };
 
-// --- [7] 기타 기본 로직 ---
-// 스탯/스킬 생성 관련은 기존 유지하되 alert -> showToast 교체
-window.openSkillCreateModal = () => { /* 기존 코드 유지 */ document.getElementById('modal-create-skill').style.display = 'flex'; /* ... */ };
+window.openSkillCreateModal = () => {
+    document.getElementById('modal-create-skill').style.display = 'flex';
+    const chipGroup = document.getElementById('core-select-group');
+    chipGroup.innerHTML = '';
+    selectedCoreForCreate = null;
+    ['STR','DEX','INT','WIS','VIT'].forEach(cid => {
+        const chip = document.createElement('div');
+        chip.className = 'chip'; chip.innerText = cid;
+        chip.onclick = () => {
+            document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+            chip.classList.add('active'); selectedCoreForCreate = cid; updateMasterySelect(cid);
+        };
+        chipGroup.appendChild(chip);
+    });
+    updateMasterySelect(null);
+};
+function updateMasterySelect(coreId) {
+    const select = document.getElementById('new-mastery-select'); select.innerHTML = '';
+    if(!coreId) { select.innerHTML = '<option value="">-- 선택 --</option>'; return; }
+    for(let mid in state.masteries) { if(state.masteries[mid].core === coreId) select.innerHTML += `<option value="${mid}">${state.masteries[mid].name}</option>`; }
+    select.innerHTML += '<option value="NEW_MASTERY">+ 새 마스터리</option>';
+    checkMasteryInput();
+}
+window.checkMasteryInput = () => { const val = document.getElementById('new-mastery-select').value; document.getElementById('new-mastery-input').style.display = val==='NEW_MASTERY'?'block':'none'; };
+
 window.createSkillAction = () => {
-    // ... (유효성 검사 alert -> showToast로 변경)
-    if(!selectedCoreForCreate) return showToast("스탯을 선택하세요.");
+    if(!selectedCoreForCreate) return showToast("스탯 선택");
     let mid = document.getElementById('new-mastery-select').value;
     const mInput = document.getElementById('new-mastery-input').value.trim();
     const sName = document.getElementById('new-skill-name').value.trim();
-
-    if(mid === 'NEW_MASTERY' && !mInput) return showToast("마스터리 이름을 입력하세요.");
-    if(!sName) return showToast("스킬 이름을 입력하세요.");
-
-    if(mid === 'NEW_MASTERY') {
-        mid = 'm' + Date.now();
-        state.masteries[mid] = { name: mInput, core: selectedCoreForCreate, level: 0 };
-    }
-    const newSid = 's' + Date.now();
-    state.skills[newSid] = { name: sName, mastery: mid, seconds: 0, level: 0, hidden: false };
-    
-    DataManager.save(state);
-    closeModal('modal-create-skill');
-    updateGlobalUI(); renderCharacter();
-    showToast(`스킬 습득: [${sName}]`);
+    if(mid === 'NEW_MASTERY' && !mInput) return showToast("마스터리 이름 입력");
+    if(!sName) return showToast("스킬 이름 입력");
+    if(mid === 'NEW_MASTERY') { mid = 'm' + Date.now(); state.masteries[mid] = { name: mInput, core: selectedCoreForCreate, level: 0 }; }
+    state.skills['s'+Date.now()] = { name: sName, mastery: mid, seconds: 0, level: 0, hidden: false };
+    DataManager.save(state); closeModal('modal-create-skill'); updateGlobalUI(); renderCharacter(); showToast("스킬 습득 완료");
 };
 
-// 퀘스트 생성
 window.openQuestManager = () => {
-    const availableSkills = Object.values(state.skills).filter(s => !s.hidden);
-    if(availableSkills.length === 0) return showToast("생성된 스킬이 없습니다.");
+    const skills = Object.values(state.skills).filter(s => !s.hidden);
+    if(skills.length === 0) return showToast("스킬 없음");
     document.getElementById('modal-create-quest').style.display = 'flex';
-    const select = document.getElementById('quest-skill-select');
-    select.innerHTML = '';
-    availableSkills.forEach(s => select.innerHTML += `<option value="${Object.keys(state.skills).find(k=>state.skills[k]===s)}">${s.name} (Lv.${s.level})</option>`);
+    const select = document.getElementById('quest-skill-select'); select.innerHTML = '';
+    skills.forEach(s => select.innerHTML += `<option value="${Object.keys(state.skills).find(k=>state.skills[k]===s)}">${s.name}</option>`);
 };
 window.createQuestAction = () => {
-    const qName = document.getElementById('new-quest-name').value.trim();
+    const name = document.getElementById('new-quest-name').value.trim();
     const sid = document.getElementById('quest-skill-select').value;
-    if(!qName) return showToast("의뢰 이름을 입력하세요.");
-    const qid = 'q' + Date.now();
-    state.quests[qid] = { name: qName, linkedSkillId: sid };
-    DataManager.save(state);
-    closeModal('modal-create-quest');
-    renderQuest();
-    showToast("의뢰가 게시되었습니다.");
+    if(!name) return showToast("의뢰 이름 입력");
+    state.quests['q'+Date.now()] = { name, linkedSkillId: sid };
+    DataManager.save(state); closeModal('modal-create-quest'); renderQuest(); showToast("의뢰 등록 완료");
 };
 
-// 업적 체크
 function checkAchievements() {
     let updated = false;
     if (state.cores.STR.level >= 10 && !state.unlockedJobs.includes("전사")) { state.unlockedJobs.push("전사"); showToast("직업 해금: 전사"); updated=true; }
-    // ... 추가 조건들
+    if (state.cores.INT.level >= 10 && !state.unlockedJobs.includes("학자")) { state.unlockedJobs.push("학자"); showToast("직업 해금: 학자"); updated=true; }
     if(updated) DataManager.save(state);
 }
 
 // 전투
 window.startBattle = (qid) => {
-    activeQuestId = qid; 
-    const quest = state.quests[qid];
-    sessionSec = 0;
-    switchTab('battle');
+    activeQuestId = qid; const quest = state.quests[qid];
+    sessionSec = 0; switchTab('battle');
     document.getElementById('battle-quest-name').innerText = quest.name;
-    document.getElementById('battle-earning').innerText = `전투 중...`;
+    document.getElementById('battle-earning').innerText = "전투 중...";
     BattleManager.init();
     timer = setInterval(() => {
         sessionSec++;
@@ -380,39 +360,29 @@ window.startBattle = (qid) => {
         document.getElementById('battle-timer').innerText = `00:${m}:${s}`;
     }, 1000);
 };
-
 document.getElementById('btn-stop').onclick = () => {
-    if (!timer) return;
-    clearInterval(timer); timer = null; BattleManager.destroy();
-    
+    if (!timer) return; clearInterval(timer); timer = null; BattleManager.destroy();
     const quest = state.quests[activeQuestId];
     const skill = state.skills[quest.linkedSkillId];
-    state.gold += sessionSec;
-    skill.seconds += sessionSec; 
-
-    let msg = `의뢰 완료! (+${sessionSec}G)`;
-    if (sessionSec > 60 && Math.random() > 0.7) {
-        const loots = ["💎 마나석", "📜 고대 문서", "💊 체력 포션"];
-        const lootName = loots[Math.floor(Math.random()*loots.length)];
-        state.inventory.push({ type: 'loot', icon: '🎁', name: lootName, desc: '전리품' });
-        msg += `\n[전리품] ${lootName}`;
+    state.gold += sessionSec; skill.seconds += sessionSec;
+    
+    let msg = `완료! (+${sessionSec}G)`;
+    if(sessionSec > 60 && Math.random() > 0.7) {
+        const loot = ["💎", "📜", "💊"][Math.floor(Math.random()*3)];
+        state.inventory.push({ type: 'loot', icon: loot, name: '전리품', desc: '수련 보상' });
+        msg += ` [전리품] ${loot}`;
     }
     showToast(msg);
-
     sessionSec = 0; activeQuestId = null;
-    document.getElementById('battle-quest-name').innerText = "-";
-    document.getElementById('battle-timer').innerText = "00:00:00";
-    
+    document.getElementById('battle-quest-name').innerText = "-"; document.getElementById('battle-timer').innerText = "00:00:00";
     DataManager.save(state); updateGlobalUI(); switchTab('quest');
 };
 
-// 공통
 function switchTab(target) {
     document.querySelectorAll('.tab-screen').forEach(el => el.classList.remove('active'));
     document.getElementById(`tab-${target}`).classList.add('active');
     document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
     document.querySelector(`.nav-btn[data-target="${target}"]`)?.classList.add('active');
-    
     if (target === 'character') renderCharacter();
     if (target === 'quest') renderQuest();
     if (target === 'inventory') renderInventory();
@@ -421,44 +391,33 @@ function switchTab(target) {
 document.querySelectorAll('.nav-btn').forEach(btn => btn.onclick = () => switchTab(btn.dataset.target));
 window.closeModal = (id) => document.getElementById(id).style.display = 'none';
 
-// 스킬 관리 모달
 window.openSkillManager = () => document.getElementById('modal-skill-manager').style.display = 'flex';
 window.openRestoreSkillMode = () => {
     document.getElementById('modal-skill-manager').style.display = 'none';
     document.getElementById('modal-restore-skill').style.display = 'flex';
-    const list = document.getElementById('deleted-skill-list');
-    list.innerHTML = '';
+    const list = document.getElementById('deleted-skill-list'); list.innerHTML = '';
     for(let sid in state.skills) {
-        const skill = state.skills[sid];
-        const item = document.createElement('div');
-        item.className = 'list-item';
-        if(skill.hidden) {
-            item.innerHTML = `<span style="text-decoration:line-through; color:#666; font-size:9px;">${skill.name}</span>
-                <div style="display:flex; gap:5px;">
-                    <button class="btn-sm" style="width:auto" onclick="restoreSkill('${sid}')">복구</button>
-                    <button class="btn-sm btn-danger" style="width:auto" onclick="permanentDeleteSkill('${sid}')">삭제</button>
-                </div>`;
+        const s = state.skills[sid];
+        const item = document.createElement('div'); item.className = 'list-item';
+        if(s.hidden) {
+            item.innerHTML = `<span style="text-decoration:line-through;color:#666;font-size:9px;">${s.name}</span>
+            <div style="display:flex;gap:5px;"><button class="btn-sm" onclick="restoreSkill('${sid}')">복구</button><button class="btn-sm btn-danger" onclick="permDeleteSkill('${sid}')">삭제</button></div>`;
         } else {
-            item.innerHTML = `<span>${skill.name}</span><button class="btn-sm btn-danger" style="width:auto" onclick="softDeleteSkill('${sid}')">보관</button>`;
+            item.innerHTML = `<span>${s.name}</span><button class="btn-sm btn-danger" onclick="softDeleteSkill('${sid}')">보관</button>`;
         }
         list.appendChild(item);
     }
 };
 window.softDeleteSkill = (sid) => { state.skills[sid].hidden = true; DataManager.save(state); openRestoreSkillMode(); renderQuest(); };
 window.restoreSkill = (sid) => { state.skills[sid].hidden = false; DataManager.save(state); openRestoreSkillMode(); renderQuest(); };
-window.permanentDeleteSkill = (sid) => {
-    openConfirmModal("정말 영구 삭제하시겠습니까?", () => {
-        delete state.skills[sid]; DataManager.save(state); openRestoreSkillMode(); renderQuest(); updateGlobalUI();
-        showToast("영구 삭제되었습니다.");
-    });
-};
+window.permDeleteSkill = (sid) => { openConfirmModal("영구 삭제하시겠습니까?", () => { delete state.skills[sid]; DataManager.save(state); openRestoreSkillMode(); updateGlobalUI(); showToast("삭제됨"); }); };
 
-// 설정 및 기타
 window.openSettingsModal = () => document.getElementById('modal-settings').style.display = 'flex';
 window.openCreateShopItemModal = () => document.getElementById('modal-create-shop-item').style.display = 'flex';
-window.createShopItemAction = () => { /* 기존 로직 + showToast */ const name=document.getElementById('new-shop-item-name').value; const cost=document.getElementById('new-shop-item-cost').value; if(!name) return showToast("상품명 입력"); state.shopItems.push({id:'i'+Date.now(), name, cost}); DataManager.save(state); renderShop(); closeModal('modal-create-shop-item'); };
+window.createShopItemAction = () => { const n=document.getElementById('new-shop-item-name').value; const c=document.getElementById('new-shop-item-cost').value; if(!n)return showToast("입력하세요"); state.shopItems.push({id:'i'+Date.now(),name:n,cost:c}); DataManager.save(state); renderShop(); closeModal('modal-create-shop-item'); };
 
 document.getElementById('btn-export').onclick = () => DataManager.export(state);
-document.getElementById('btn-reset').onclick = () => { openConfirmModal("정말 초기화하시겠습니까?", () => { DataManager.reset(); }); }; // reset은 confirm 내부 처리가 아니라 DataManager에서 처리하거나 여기서 처리.
+document.getElementById('btn-reset').onclick = () => openConfirmModal("초기화하시겠습니까?", () => DataManager.reset());
 
+// 실행
 updateGlobalUI(); renderCharacter();
