@@ -1,6 +1,6 @@
-const STORAGE_KEY = 'LLG_DATA_FINAL';
+const STORAGE_KEY = 'LLG_DATA_FINAL_V2'; // 버전 올림 (기존 데이터 충돌 방지)
 
-// 초기 데이터 (3계층 구조)
+// 초기 데이터 (수정됨: Arts -> Skills)
 const DEFAULT_STATE = {
     gold: 0,
     totalLevel: 0,
@@ -16,15 +16,15 @@ const DEFAULT_STATE = {
         m3: { name: "신체단련", core: "STR", level: 0 },
         m4: { name: "투자전략", core: "WIS", level: 0 }
     },
-    arts: {
-        a1: { name: "토익", mastery: "m1", seconds: 0, level: 0 },
-        a2: { name: "파이썬", mastery: "m2", seconds: 0, level: 0 },
-        a3: { name: "헬스", mastery: "m3", seconds: 0, level: 0 },
-        a4: { name: "백테스팅", mastery: "m4", seconds: 0, level: 0 }
+    skills: { // ★ 여기가 Arts에서 Skills로 변경됨
+        s1: { name: "토익", mastery: "m1", seconds: 0, level: 0 },
+        s2: { name: "파이썬", mastery: "m2", seconds: 0, level: 0 },
+        s3: { name: "헬스", mastery: "m3", seconds: 0, level: 0 },
+        s4: { name: "백테스팅", mastery: "m4", seconds: 0, level: 0 }
     }
+    // 나중에 스킬 추가할 때 s5, s6... 이렇게 늘려가면 됩니다.
 };
 
-// 현실 상점 아이템
 export const SHOP_ITEMS = [
     { name: "유튜브 30분", cost: 500 },
     { name: "배달음식", cost: 3000 },
@@ -40,14 +40,16 @@ export const DataManager = {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     },
     reset: () => {
-        localStorage.removeItem(STORAGE_KEY);
-        location.reload();
+        if(confirm("정말 모든 데이터를 초기화하시겠습니까?")) {
+            localStorage.removeItem(STORAGE_KEY);
+            location.reload();
+        }
     },
     export: (state) => {
         const str = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
         const node = document.createElement('a');
         node.href = str;
-        node.download = "LLG_Backup.json";
+        node.download = `LLG_Backup_${new Date().toISOString().slice(0,10)}.json`;
         node.click();
     }
 };
