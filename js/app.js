@@ -167,7 +167,12 @@ function renderShop() {
     SHOP_ITEMS.forEach(item => {
         const div = document.createElement('div');
         div.className = 'card';
-        div.style.display = 'flex'; justify-content: 'space-between'; align-items: 'center';
+        
+        // ★ 여기가 수정되었습니다 (스타일 적용 방식)
+        div.style.display = 'flex';
+        div.style.justifyContent = 'space-between';
+        div.style.alignItems = 'center';
+        
         div.innerHTML = `<span>${item.name}</span> <button class="btn-shop" style="width:auto; padding:8px 15px;">${item.cost} G</button>`;
         div.querySelector('button').onclick = () => {
             if (state.gold >= item.cost) {
