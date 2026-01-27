@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'LLG_DATA_V6_FINAL';
+const STORAGE_KEY = 'LLG_DATA_V6_FIXED'; // 버전을 바꿔서 충돌 방지
 
 // 초기 데이터
 const DEFAULT_STATE = {
@@ -6,13 +6,11 @@ const DEFAULT_STATE = {
     totalLevel: 0,
     currentTitle: "모험가",
     currentJob: "무직",
-    
     unlockedTitles: ["모험가"],
     unlockedJobs: ["무직"],
-    
     inventory: [], 
     
-    // [1] 스탯 (불변)
+    // 5대 스탯 정의
     cores: {
         STR: { name: "힘 (STR)", level: 0, color: "#FF5C5C" },
         DEX: { name: "솜씨 (DEX)", level: 0, color: "#6BCB77" },
@@ -22,10 +20,8 @@ const DEFAULT_STATE = {
     },
     
     masteries: {}, 
-    skills: {}, // 스킬 (성장하는 대상)
-    quests: {}, // [신규] 퀘스트 (수행하는 행동)
-
-    // [신규] 유저가 커스텀 가능한 상점 아이템 (기본값 제공)
+    skills: {}, 
+    quests: {}, 
     shopItems: [
         { id: 'item1', name: "유튜브 30분", cost: 500 },
         { id: 'item2', name: "배달음식", cost: 3000 },
@@ -37,9 +33,20 @@ export const DataManager = {
     load: () => {
         const json = localStorage.getItem(STORAGE_KEY);
         if(!json) return JSON.parse(JSON.stringify(DEFAULT_STATE));
+        
         const data = JSON.parse(json);
         
-        // 마이그레이션
+        // [중요] 데이터 마이그레이션 (없는 스탯 자동 복구)
+        const defaults = DEFAULT_STATE.cores;
+        if (!data.cores) data.cores = {};
+        
+        // 5개 스탯 중 하나라도 없으면 기본값으로 채워넣음 (에러 방지)
+        ['STR', 'DEX', 'INT', 'WIS', 'VIT'].forEach(key => {
+            if (!data.cores[key]) {
+                data.cores[key] = JSON.parse(JSON.stringify(defaults[key]));
+            }
+        });
+
         if(!data.quests) data.quests = {};
         if(!data.shopItems) data.shopItems = DEFAULT_STATE.shopItems;
         
@@ -49,10 +56,8 @@ export const DataManager = {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     },
     reset: () => {
-        if(confirm("정말 초기화하시겠습니까?")) {
-            localStorage.removeItem(STORAGE_KEY);
-            location.reload();
-        }
+        localStorage.removeItem(STORAGE_KEY);
+        location.reload();
     },
     export: (state) => {
         const str = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
