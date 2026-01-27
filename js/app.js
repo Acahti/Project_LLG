@@ -4,25 +4,30 @@ import { BattleManager } from './battle.js';
 let state = DataManager.load();
 let timer = null;
 let sessionSec = 0;
-let activeArtId = null;
+let activeSkillId = null; // 변수명 변경 (activeArtId -> activeSkillId)
 
 // --- 1. 통계 계산 및 UI 갱신 ---
 function updateGlobalUI() {
-    // 스탯 재계산
     let totalLv = 0;
     
-    // Arts -> Mastery -> Core
-    for (let aid in state.arts) state.arts[aid].level = Math.floor(state.arts[aid].seconds / 60);
+    // 1. Skill 레벨 계산
+    for (let sid in state.skills) {
+        // 60초 = 1레벨 (테스트용)
+        state.skills[sid].level = Math.floor(state.skills[sid].seconds / 60);
+    }
     
+    // 2. Mastery & Core 초기화
     for (let mid in state.masteries) state.masteries[mid].level = 0;
     for (let cid in state.cores) state.cores[cid].level = 0;
 
-    for (let aid in state.arts) {
-        const art = state.arts[aid];
-        const mastery = state.masteries[art.mastery];
+    // 3. 합산 로직 (Skill -> Mastery -> Core)
+    for (let sid in state.skills) {
+        const skill = state.skills[sid];
+        const mastery = state.masteries[skill.mastery];
         const core = state.cores[mastery.core];
-        mastery.level += art.level;
-        core.level += art.level;
+        
+        mastery.level += skill.level;
+        core.level += skill.level;
     }
 
     for (let cid in state.cores) totalLv += state.cores[cid].level;
@@ -43,20 +48,25 @@ function updateGlobalUI() {
 function renderCharacter() {
     const box = document.getElementById('stats-container');
     box.innerHTML = '';
+    
     for (let cid in state.cores) {
         const core = state.cores[cid];
         if (core.level === 0 && cid !== 'INT') continue;
         
         let html = `<div class="card"><h3>${core.name} : Lv.${core.level}</h3>`;
+        
         for (let mid in state.masteries) {
             const mastery = state.masteries[mid];
             if (mastery.core !== cid) continue;
-            html += `<div style="margin-left:10px; color:#aaa;">▼ ${mastery.name} (Lv.${mastery.level})</div>`;
-            for (let aid in state.arts) {
-                const art = state.arts[aid];
-                if (art.mastery !== mid) continue;
-                html += `<div style="display:flex; justify-content:space-between; margin-left:20px; font-size:10px; margin-top:3px;">
-                            <span>- ${art.name}</span><span>Lv.${art.level}</span>
+            
+            html += `<div style="margin-left:10px; color:#aaa; margin-top:5px;">▼ ${mastery.name} (Lv.${mastery.level})</div>`;
+            
+            for (let sid in state.skills) {
+                const skill = state.skills[sid];
+                if (skill.mastery !== mid) continue;
+                
+                html += `<div style="display:flex; justify-content:space-between; margin-left:20px; font-size:10px; margin-top:3px; color:#fff;">
+                            <span>- ${skill.name}</span><span>Lv.${skill.level}</span>
                          </div>`;
             }
         }
@@ -68,12 +78,19 @@ function renderCharacter() {
 function renderQuest() {
     const box = document.getElementById('quest-container');
     box.innerHTML = '';
-    for (let aid in state.arts) {
-        const art = state.arts[aid];
+    
+    for (let sid in state.skills) {
+        const skill = state.skills[sid];
         const btn = document.createElement('button');
-        btn.innerHTML = `${art.name} <span style="font-size:8px">(Lv.${art.level})</span>`;
-        btn.onclick = () => startBattle(aid);
-        box.appendChild(btn);
+        // 버튼 텍스트 수정
+        btn.innerHTML = `${skill.name} <span style="font-size:8px">(Lv.${skill.level})</span>`;
+        btn.onclick = () => startBattle(sid);
+        
+        const card = document.createElement('div');
+        card.className = 'card'; // 카드 스타일 적용
+        card.style.marginBottom = '10px';
+        card.appendChild(btn);
+        box.appendChild(card);
     }
 }
 
@@ -87,27 +104,28 @@ function renderShop() {
         div.style.justifyContent = 'space-between';
         div.style.alignItems = 'center';
         div.innerHTML = `<span>${item.name}</span> <button class="btn-shop" style="width:auto; padding:8px 15px;">${item.cost} G</button>`;
+        
         div.querySelector('button').onclick = () => {
             if (state.gold >= item.cost) {
-                if(confirm(`${item.name} 구매?`)) {
+                if(confirm(`${item.name} 구매하시겠습니까?`)) {
                     state.gold -= item.cost;
                     DataManager.save(state);
                     updateGlobalUI();
-                    renderShop(); // 잔액 갱신
+                    renderShop(); // 잔액 갱신을 위해 다시 그림
                 }
-            } else alert("골드 부족!");
+            } else alert("골드가 부족합니다!");
         };
         box.appendChild(div);
     });
 }
 
 // --- 3. 전투 시스템 ---
-function startBattle(artId) {
-    activeArtId = artId;
+function startBattle(skillId) {
+    activeSkillId = skillId;
     sessionSec = 0;
     switchTab('battle');
     
-    document.getElementById('battle-quest-name').innerText = state.arts[artId].name;
+    document.getElementById('battle-quest-name').innerText = state.skills[skillId].name;
     BattleManager.init(); // Phaser 시작
 
     timer = setInterval(() => {
@@ -125,8 +143,9 @@ document.getElementById('btn-stop').onclick = () => {
     timer = null;
     BattleManager.destroy(); // Phaser 종료
 
+    // 보상 지급
     state.gold += sessionSec;
-    state.arts[activeArtId].seconds += sessionSec;
+    state.skills[activeSkillId].seconds += sessionSec;
     DataManager.save(state);
     
     alert(`${sessionSec} 골드 획득!`);
@@ -158,9 +177,13 @@ document.getElementById('btn-import').onclick = () => document.getElementById('f
 document.getElementById('file-input').onchange = (e) => {
     const reader = new FileReader();
     reader.onload = (e) => {
-        state = JSON.parse(e.target.result);
-        DataManager.save(state);
-        location.reload();
+        try {
+            state = JSON.parse(e.target.result);
+            DataManager.save(state);
+            location.reload();
+        } catch (err) {
+            alert("잘못된 파일 형식입니다.");
+        }
     };
     reader.readAsText(e.target.files[0]);
 };
