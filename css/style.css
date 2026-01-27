@@ -1,81 +1,321 @@
+/* =========================================
+   1. 기본 변수 및 설정 (Variables)
+   ========================================= */
 :root {
-    --bg-dark: #121214; --bg-panel: #1e1e24;
-    --accent: #4D96FF; --gold: #FFD700; --danger: #FF5C5C; --text: #e0e0e0;
-}
-body {
-    background: var(--bg-dark); color: var(--text);
-    font-family: 'Press Start 2P', cursive;
-    margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden;
-    font-size: 10px; user-select: none;
-}
-
-/* 레이아웃 */
-header { height: 50px; background: var(--bg-panel); display: flex; justify-content: space-between; align-items: center; padding: 0 15px; border-bottom: 2px solid #333; }
-main { flex: 1; overflow-y: auto; padding-bottom: 70px; }
-.tab-screen { display: none; padding: 15px; animation: fadeIn 0.3s; }
-.tab-screen.active { display: block; }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-/* UI 요소 */
-.card { background: var(--bg-panel); padding: 15px; margin-bottom: 15px; border: 2px solid #333; border-radius: 4px; box-shadow: 3px 3px 0 #000; }
-.header-card { text-align: center; color: #aaa; }
-h3 { color: var(--accent); margin: 0 0 10px 0; border-bottom: 1px dashed #444; padding-bottom: 5px; font-size: 12px; }
-button { width: 100%; padding: 12px; background: var(--accent); color: #fff; border: none; font-family: inherit; cursor: pointer; border-bottom: 4px solid #2255aa; border-radius: 4px; margin-top: 5px; }
-button:active { transform: translateY(2px); border-bottom: 2px solid #2255aa; }
-.btn-danger { background: var(--danger); border-bottom-color: #aa2222; }
-.btn-shop { background: var(--gold); color: #000; border-bottom-color: #ccac00; }
-
-/* 네비게이션 */
-nav { height: 65px; background: var(--bg-panel); border-top: 2px solid #333; position: fixed; bottom: 0; width: 100%; display: flex; z-index: 100; }
-.nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #666; cursor: pointer; transition: 0.2s; }
-.nav-btn.active { color: var(--accent); background: #2a2a35; border-top: 3px solid var(--accent); }
-.material-icons-round { font-size: 24px; margin-bottom: 5px; }
-
-/* Phaser 컨테이너 */
-#phaser-root { width: 100%; height: 300px; border: 2px solid #444; margin-bottom: 15px; }
-.battle-ui { text-align: center; }
-#battle-timer { font-size: 24px; margin: 10px 0; }
-
-
-/* --- [PC/태블릿 화면 최적화] --- */
-@media (min-width: 768px) {
-    body {
-        /* 스마트폰 크기로 강제 고정 */
-        max-width: 420px;
-        height: 90vh; /* 화면 꽉 채우지 않고 위아래 여백 */
-        margin: 5vh auto; /* 화면 정중앙 배치 */
-        
-        /* 스마트폰 외형 꾸미기 */
-        border: 8px solid #333;
-        border-radius: 20px;
-        box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
-        background-color: var(--bg-dark);
-        position: relative;
-        overflow: hidden; /* 둥근 모서리 밖으로 내용 안 튀어나가게 */
-    }
-
-    /* 하단 네비게이션도 가운데로 모으기 */
-    nav {
-        max-width: 420px;
-        left: 50%;
-        transform: translateX(-50%);
-        border-bottom-left-radius: 12px; /* body border 고려 */
-        border-bottom-right-radius: 12px;
-        bottom: 5vh; /* body margin 고려해서 위치 조정 */
-        border-top: 2px solid #444;
-    }
-
-    /* PC 배경색을 어둡게 처리해서 앱에 집중되게 */
-    html {
-        background-color: #000000;
-        background-image: 
-            radial-gradient(#333 1px, transparent 1px),
-            radial-gradient(#222 1px, transparent 1px);
-        background-size: 20px 20px;
-        background-position: 0 0, 10px 10px;
-        height: 100%;
-    }
+    /* [테마 색상] */
+    --bg-dark: #121214;      /* 앱 배경 */
+    --bg-panel: #1e1e24;     /* 카드/패널 배경 */
+    --accent: #4D96FF;       /* 강조색 (파랑) */
+    --gold: #FFD700;         /* 골드색 (노랑) */
+    --danger: #FF5C5C;       /* 위험/중지 (빨강) */
+    --text: #e0e0e0;         /* 기본 텍스트 */
     
-    /* 스크롤바 숨기기 (깔끔하게) */
-    ::-webkit-scrollbar { width: 0px; background: transparent; }
+    /* [안전 영역 (아이폰 노치 & 홈바 대응)] */
+    /* env()는 아이폰이 자동으로 계산해주는 값입니다. 없으면 0px */
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* =========================================
+   2. 전체 레이아웃 (Global Layout)
+   ========================================= */
+* {
+    box-sizing: border-box; /* 패딩이 너비에 포함되도록 설정 */
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text);
+    font-family: 'Press Start 2P', cursive, sans-serif; /* 픽셀 폰트 */
+    font-size: 10px;
+    line-height: 1.5;
+    
+    margin: 0;
+    padding: 0;
+    
+    /* 화면 꽉 채우기 및 스크롤 방지 (내부만 스크롤) */
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    user-select: none; /* 텍스트 드래그 방지 */
+
+    /* [중요] 아이폰 노치와 홈바만큼 안쪽으로 밀어주기 */
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+}
+
+/* 스크롤바 꾸미기 (웹킷 기반 브라우저) */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-track {
+    background: var(--bg-dark);
+}
+::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 3px;
+}
+
+/* =========================================
+   3. 헤더 (Header)
+   ========================================= */
+header {
+    height: 50px;
+    background-color: var(--bg-panel);
+    border-bottom: 2px solid #333;
+    
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 15px;
+    
+    /* 스크롤 시에도 최상단 고정 느낌 */
+    position: relative;
+    z-index: 10;
+}
+
+.top-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.material-icons-round {
+    font-size: 16px; /* 아이콘 크기 조정 */
+}
+
+.job-icon { color: var(--accent); }
+.gold-icon { color: var(--gold); }
+
+/* =========================================
+   4. 메인 컨텐츠 영역 (Main)
+   ========================================= */
+main {
+    flex: 1; /* 남은 공간 다 차지 */
+    overflow-y: auto; /* 세로 스크롤 허용 */
+    padding: 15px;
+    
+    /* 하단 네비게이션 바에 가려지지 않도록 여백 확보 */
+    padding-bottom: 80px; 
+}
+
+/* 탭 화면 전환 효과 */
+.tab-screen {
+    display: none;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.tab-screen.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================
+   5. UI 컴포넌트 (Cards, Buttons)
+   ========================================= */
+/* 카드 스타일 */
+.card {
+    background-color: var(--bg-panel);
+    border: 2px solid #333;
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 4px 4px 0px #000; /* 픽셀 그림자 */
+}
+
+.header-card {
+    text-align: center;
+    color: #888;
+}
+
+h3 {
+    margin: 0 0 10px 0;
+    font-size: 12px;
+    color: var(--accent);
+    border-bottom: 1px dashed #444;
+    padding-bottom: 5px;
+}
+
+p {
+    margin: 5px 0;
+}
+
+/* 버튼 공통 스타일 */
+button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 5px;
+    
+    font-family: inherit;
+    font-size: 10px;
+    color: #fff;
+    background-color: var(--accent);
+    
+    border: none;
+    border-radius: 4px;
+    border-bottom: 4px solid #2255aa; /* 입체감 */
+    
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+button:active {
+    transform: translateY(2px); /* 눌리는 효과 */
+    border-bottom: 2px solid #2255aa;
+}
+
+/* 버튼 변형 (빨강, 골드) */
+.btn-danger {
+    background-color: var(--danger);
+    border-bottom-color: #aa2222;
+}
+
+.btn-shop {
+    width: auto; /* 상점 버튼은 내용만큼만 */
+    padding: 8px 15px;
+    color: #000;
+    background-color: var(--gold);
+    border-bottom-color: #ccac00;
+}
+
+/* =========================================
+   6. 전투(Phaser) 화면 스타일
+   ========================================= */
+#phaser-root {
+    width: 100%;
+    height: 300px;
+    background-color: #000;
+    border: 2px solid #444;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.battle-ui {
+    text-align: center;
+}
+
+#battle-timer {
+    font-size: 24px;
+    margin: 10px 0;
+    color: #fff;
+    text-shadow: 2px 2px 0 #000;
+}
+
+#battle-earning {
+    color: #888;
+    font-size: 10px;
+    margin-bottom: 15px;
+}
+
+/* =========================================
+   7. 하단 네비게이션 (Navigation)
+   ========================================= */
+nav {
+    height: 65px;
+    background-color: var(--bg-panel);
+    border-top: 2px solid #333;
+    
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    z-index: 100;
+    
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+
+    /* [중요] 아이폰 홈바 때문에 하단을 띄워줌 */
+    padding-bottom: var(--safe-bottom);
+    box-sizing: content-box; /* 패딩을 높이에 포함하지 않음 */
+}
+
+.nav-btn {
+    flex: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    
+    color: #666;
+    text-decoration: none;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.nav-btn span.material-icons-round {
+    font-size: 24px;
+    margin-bottom: 4px;
+}
+
+.nav-btn span:last-child {
+    font-size: 8px;
+}
+
+/* 활성화된 탭 스타일 */
+.nav-btn.active {
+    color: var(--accent);
+    background-color: #2a2a35;
+    border-top: 3px solid var(--accent);
+}
+
+/* =========================================
+   8. PC/태블릿 화면 최적화 (Desktop View)
+   ========================================= */
+@media (min-width: 768px) {
+    /* PC 배경화면 꾸미기 */
+    html {
+        background-color: #080808;
+        background-image: 
+            linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        background-size: 20px 20px;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    body {
+        /* 스마트폰 모양 만들기 */
+        position: relative;
+        width: 100%;
+        max-width: 420px; /* 폰 너비 제한 */
+        height: 90vh;     /* 모니터 꽉 채우지 않음 */
+        max-height: 900px;
+        
+        margin: 0 auto;
+        border: 8px solid #333; /* 베젤 */
+        border-radius: 30px;    /* 둥근 모서리 */
+        box-shadow: 0 0 60px rgba(0, 0, 0, 0.8);
+        
+        /* 폰 내부 스크롤바 숨김 */
+        scrollbar-width: none; 
+        
+        /* PC에서는 노치/홈바 패딩 제거 (베젤이 있으므로) */
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    /* 네비게이션 바를 '가짜 폰' 안쪽 하단에 고정 */
+    nav {
+        position: absolute; /* fixed 대신 absolute 사용 */
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        border-bottom-left-radius: 20px;
+        border-bottom-right-radius: 20px;
+        padding-bottom: 10px; /* PC에서는 살짝만 띄움 */
+    }
+
+    /* 메인 영역도 '가짜 폰' 안에서 스크롤 */
+    main {
+        border-radius: 20px;
+    }
 }
