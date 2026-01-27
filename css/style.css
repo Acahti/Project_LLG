@@ -130,6 +130,43 @@ button:active { transform: translateY(2px); border-bottom: 2px solid rgba(0,0,0,
 .btn-danger { background: var(--danger); }
 .btn-shop { background: var(--gold); color: #000; }
 
+/* ... (이전 코드와 동일, 아래 내용 추가/수정) ... */
+
+/* [수정] 스탯 아코디언 스타일 개선 */
+.stat-header { 
+    padding: 12px; display: flex; justify-content: space-between; align-items: center; 
+    cursor: pointer; background: #25252b; 
+}
+
+/* 마스터리 타이틀 영역 (수정 버튼 배치를 위해 flex 적용) */
+.mastery-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 10px; margin-bottom: 5px;
+    padding-bottom: 2px; border-bottom: 1px dashed #333;
+}
+.mastery-title { 
+    color: #aaa; font-size: 9px; font-weight: bold; 
+}
+
+/* 스킬 행 스타일 */
+.skill-row { 
+    padding: 8px 10px; color: #fff; font-size: 10px; margin-bottom: 3px; 
+    display: flex; justify-content: space-between; align-items: center;
+    background: rgba(255, 255, 255, 0.03); border-radius: 4px;
+}
+
+/* 수정 버튼 (연필) */
+.btn-edit {
+    background: transparent; border: none; color: #666; cursor: pointer; 
+    padding: 4px; width: auto; font-size: 12px; border-bottom: none;
+    margin: 0;
+}
+.btn-edit:hover { color: var(--accent); }
+
+/* 모달 내부 스타일 */
+.modal-desc { font-size: 9px; color: #888; margin-bottom: 15px; text-align: center; line-height: 1.4; }
+.danger-zone { margin-top: 20px; padding-top: 15px; border-top: 1px dashed #444; }
+
 /* 토스트 */
 #toast-container { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 9000; width: 90%; max-width: 300px; pointer-events: none; }
 .toast {
