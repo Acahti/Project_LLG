@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>PROJECT: LLG v6</title>
+    <title>PROJECT: LLG v7</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="css/style.css?v=6.0">
+    <link rel="stylesheet" href="css/style.css?v=7.0">
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
@@ -102,29 +102,35 @@
         </div>
     </div>
 
-    <div id="modal-title" class="modal">
+    <div id="modal-create-skill" class="modal">
         <div class="modal-content">
-            <h3>신분 변경</h3>
-            <div class="tab-group">
-                <button id="tab-btn-title" class="tab-btn active" onclick="switchTitleTab('title')">칭호</button>
-                <button id="tab-btn-job" class="tab-btn" onclick="switchTitleTab('job')">직업</button>
-            </div>
-            <div id="title-list-container" class="list-group"></div>
-            <button onclick="closeModal('modal-title')" class="btn-text">닫기</button>
+            <h3>스킬 습득</h3>
+            <label class="input-label">1. 핵심 스탯</label>
+            <div id="core-select-group" class="chip-group"></div>
+            <label class="input-label">2. 마스터리</label>
+            <select id="new-mastery-select" class="input-dark" onchange="checkMasteryInput()"></select>
+            <input type="text" id="new-mastery-input" class="input-dark" style="display:none;" placeholder="예: 언어능력">
+            <label class="input-label">3. 스킬 이름</label>
+            <input type="text" id="new-skill-name" class="input-dark" placeholder="예: 문해력">
+            <button onclick="createSkillAction()" class="btn-primary" style="margin-top:15px;">생성</button>
+            <button onclick="closeModal('modal-create-skill')" class="btn-text">취소</button>
         </div>
     </div>
 
-    <div id="modal-create-item" class="modal">
+    <div id="modal-create-quest" class="modal">
         <div class="modal-content">
-            <h3>기록 추가</h3>
-            <label class="input-label">이름</label>
-            <input type="text" id="new-item-name" class="input-dark" placeholder="예: 읽은 책 제목">
-            <label class="input-label">설명</label>
-            <input type="text" id="new-item-desc" class="input-dark" placeholder="상세 내용">
-            <label class="input-label">아이콘 (이모지)</label>
-            <input type="text" id="new-item-icon" class="input-dark" value="📕">
-            <button onclick="createItemAction()" class="btn-primary" style="margin-top:15px;">기록하기</button>
-            <button onclick="closeModal('modal-create-item')" class="btn-text">취소</button>
+            <h3>의뢰 생성</h3>
+            <label class="input-label">의뢰 이름</label>
+            <input type="text" id="new-quest-name" class="input-dark" placeholder="예: 심리학 책 읽기">
+            
+            <label class="input-label">주 목표 (100% 성장)</label>
+            <select id="quest-main-skill" class="input-dark"></select>
+            
+            <label class="input-label">보너스 목표 (20% 성장, 선택)</label>
+            <select id="quest-sub-skill" class="input-dark"></select>
+            
+            <button onclick="createQuestAction()" class="btn-primary" style="margin-top:15px;">게시</button>
+            <button onclick="closeModal('modal-create-quest')" class="btn-text">취소</button>
         </div>
     </div>
 
@@ -136,53 +142,10 @@
             <button onclick="closeModal('modal-skill-manager')" class="btn-text">닫기</button>
         </div>
     </div>
-    
-    <div id="modal-create-skill" class="modal">
-        <div class="modal-content">
-            <h3>기술 창조</h3>
-            <label class="input-label">1. 핵심 스탯</label>
-            <div id="core-select-group" class="chip-group"></div>
-            <label class="input-label">2. 마스터리</label>
-            <select id="new-mastery-select" class="input-dark" onchange="checkMasteryInput()"></select>
-            <input type="text" id="new-mastery-input" class="input-dark" style="display:none;" placeholder="새 계열 입력">
-            <label class="input-label">3. 스킬 이름</label>
-            <input type="text" id="new-skill-name" class="input-dark" placeholder="예: 파이썬">
-            <button onclick="createSkillAction()" class="btn-primary" style="margin-top:15px;">생성</button>
-            <button onclick="closeModal('modal-create-skill')" class="btn-text">취소</button>
-        </div>
-    </div>
-
-    <div id="modal-create-quest" class="modal">
-        <div class="modal-content">
-            <h3>의뢰 생성</h3>
-            <label class="input-label">의뢰 이름</label>
-            <input type="text" id="new-quest-name" class="input-dark" placeholder="행동 입력">
-            <label class="input-label">성장시킬 스킬</label>
-            <select id="quest-skill-select" class="input-dark"></select>
-            <button onclick="createQuestAction()" class="btn-primary" style="margin-top:15px;">게시</button>
-            <button onclick="closeModal('modal-create-quest')" class="btn-text">취소</button>
-        </div>
-    </div>
-
-    <div id="modal-restore-skill" class="modal">
-        <div class="modal-content">
-            <h3>기억의 무덤</h3>
-            <div id="deleted-skill-list" class="list-group"></div>
-            <button onclick="closeModal('modal-restore-skill')" class="btn-text">닫기</button>
-        </div>
-    </div>
-    
-    <div id="modal-create-shop-item" class="modal">
-        <div class="modal-content">
-            <h3>상품 등록</h3>
-            <label class="input-label">상품명</label>
-            <input type="text" id="new-shop-item-name" class="input-dark">
-            <label class="input-label">가격</label>
-            <input type="number" id="new-shop-item-cost" class="input-dark">
-            <button onclick="createShopItemAction()" class="btn-shop" style="margin-top:15px; color:#000;">등록</button>
-            <button onclick="closeModal('modal-create-shop-item')" class="btn-text">취소</button>
-        </div>
-    </div>
+    <div id="modal-restore-skill" class="modal"><div class="modal-content"><h3>기억의 무덤</h3><div id="deleted-skill-list" class="list-group"></div><button onclick="closeModal('modal-restore-skill')" class="btn-text">닫기</button></div></div>
+    <div id="modal-title" class="modal"><div class="modal-content"><h3>신분 변경</h3><div class="tab-group"><button id="tab-btn-title" class="tab-btn active" onclick="switchTitleTab('title')">칭호</button><button id="tab-btn-job" class="tab-btn" onclick="switchTitleTab('job')">직업</button></div><div id="title-list-container" class="list-group"></div><button onclick="closeModal('modal-title')" class="btn-text">닫기</button></div></div>
+    <div id="modal-create-shop-item" class="modal"><div class="modal-content"><h3>상품 등록</h3><label class="input-label">상품명</label><input type="text" id="new-shop-item-name" class="input-dark"><label class="input-label">가격</label><input type="number" id="new-shop-item-cost" class="input-dark"><button onclick="createShopItemAction()" class="btn-shop" style="margin-top:15px; color:#000;">등록</button><button onclick="closeModal('modal-create-shop-item')" class="btn-text">취소</button></div></div>
+    <div id="modal-create-item" class="modal"><div class="modal-content"><h3>기록 추가</h3><label class="input-label">이름</label><input type="text" id="new-item-name" class="input-dark"><label class="input-label">설명</label><input type="text" id="new-item-desc" class="input-dark"><label class="input-label">아이콘</label><input type="text" id="new-item-icon" class="input-dark" value="📕"><button onclick="createItemAction()" class="btn-primary" style="margin-top:15px;">기록</button><button onclick="closeModal('modal-create-item')" class="btn-text">취소</button></div></div>
 
     <div id="modal-settings" class="modal">
         <div class="modal-content">
