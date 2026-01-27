@@ -1,5 +1,5 @@
 // [1] 버전 명시 (배포할 때마다 이 숫자를 꼭 올려야 합니다!)
-const CACHE_NAME = 'llg-v5.1'; 
+const CACHE_NAME = 'llg-v6.0'; 
 
 const FILES = [
     './', 
