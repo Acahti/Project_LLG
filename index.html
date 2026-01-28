@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>PROJECT: LLG v11.3</title>
+    <title>PROJECT: LLG v11.7 (Fix)</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="css/style.css?v=11.3">
+    <link rel="stylesheet" href="css/style.css?v=11.7">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
 </head>
@@ -63,21 +63,18 @@
         </section>
 
         <section id="tab-battle" class="tab-screen">
-            <div id="phaser-root" style="border-radius: 8px; overflow: hidden; border: 2px solid var(--border); box-shadow: 0 4px 10px rgba(0,0,0,0.5);"></div>
+            <div id="phaser-root" style="width:100%; aspect-ratio:320/200; border-radius: 8px; overflow: hidden; border: 2px solid var(--border); box-shadow: 0 4px 10px rgba(0,0,0,0.5); background:#121214;"></div>
             
             <div class="battle-ui" style="text-align:center; margin-top:20px;">
                 <h3 id="battle-quest-name" style="margin-bottom:10px; min-height: 1.4em; color: var(--gold);"></h3>
-                
                 <h1 id="battle-timer" style="font-size:2.5em; margin:20px 0; font-family: 'DungGeunMo', sans-serif;">휴식 중</h1>
-                
                 <p id="battle-earning" style="color:#888; font-size:0.9em; margin-bottom:20px;">HP와 의욕을 회복하고 있습니다.</p>
                 
                 <div id="btn-group-battle">
                     <button id="btn-select-quest" class="btn-primary" onclick="switchTab('quest')">
                         <span class="material-icons-round">assignment</span> 의뢰 선택하기
                     </button>
-                    
-                    <button id="btn-stop" class="btn-danger" style="display:none;">
+                    <button id="btn-stop" class="btn-danger" style="display:none;" onclick="stopBattleAction()">
                         <span class="material-icons-round">stop</span> 전투 종료 및 보상
                     </button>
                 </div>
@@ -106,7 +103,6 @@
                     <span id="inv-current-path" class="inv-path">전리품</span>
                     <div style="width:40px;"></div>
                 </div>
-
                 <div class="chip-group" id="inv-action-bar"></div>
                 <div id="inventory-grid" class="inv-grid"></div>
             </div>
@@ -219,18 +215,13 @@
                     <h3 id="detail-item-name" style="margin:0; font-size:1.3em;">아이템 이름</h3>
                     <div id="detail-item-type" style="font-size:0.8em; color:#666; margin-top:4px;">기록물</div>
                 </div>
-
-                <div id="detail-item-desc" class="detail-body">
-                    내용이 여기에 표시됩니다.
-                </div>
-
+                <div id="detail-item-desc" class="detail-body">내용이 여기에 표시됩니다.</div>
                 <div class="detail-footer">
                     <div class="action-row" style="background:rgba(255,255,255,0.05); padding:5px; border-radius:4px;">
                         <span style="font-size:0.8em; color:#888; white-space:nowrap;">이동:</span>
                         <select id="detail-move-select" class="mini-select"></select>
                         <button onclick="moveItemAction()" class="btn-sm" style="width:auto; height:30px; margin:0;">확인</button>
                     </div>
-
                     <div class="action-row">
                         <div id="record-only-actions" style="display:flex; gap:5px; flex:1;">
                             <button onclick="openEditItemMode()" class="btn-sm btn-secondary" style="flex:1; margin:0;">
@@ -252,16 +243,12 @@
             <h3 style="margin-bottom:15px;">기록 작성</h3>
             <label class="input-label">1. 이름</label>
             <input type="text" id="new-item-name" class="input-dark" placeholder="기록의 제목">
-            
             <label class="input-label">2. 배경 색상</label>
             <div id="new-item-color-picker" class="color-picker-grid"></div>
-
             <label class="input-label">3. 아이콘 선택</label>
             <div id="new-item-icon-picker" class="icon-select-grid"></div>
-            
             <label class="input-label" style="margin-top:15px;">설명 (선택)</label>
             <input type="text" id="new-item-desc" class="input-dark" placeholder="간단한 메모">
-
             <button onclick="createItemAction()" class="btn-primary" style="margin-top:20px;">
                 <span class="material-icons-round">save</span> 저장하기
             </button>
