@@ -1,8 +1,8 @@
-// [v11.3] Battle & Idle Visual Manager
+// [v11.4] High-Quality Retro Battle & Idle Visuals
 export const BattleManager = {
     game: null,
     scene: null,
-    mode: 'idle', // 'idle' or 'battle'
+    mode: 'idle', 
 
     init: (mode = 'idle') => {
         if (BattleManager.game) {
@@ -14,13 +14,10 @@ export const BattleManager = {
             type: Phaser.AUTO,
             parent: 'phaser-root',
             width: 320,
-            height: 240, // 레트로 비율
+            height: 200, // Retro resolution
+            pixelArt: true, // Enable pixel art mode
             backgroundColor: '#121214',
-            scene: {
-                preload: preload,
-                create: create,
-                update: update
-            }
+            scene: { preload: preload, create: create, update: update }
         };
 
         BattleManager.game = new Phaser.Game(config);
@@ -35,8 +32,6 @@ export const BattleManager = {
     },
 
     destroy: () => {
-        // 게임 인스턴스는 유지하되 모드만 변경하는 것이 성능상 좋음
-        // 여기서는 완전 종료가 필요하다면 사용
         if (BattleManager.game) {
             BattleManager.game.destroy(true);
             BattleManager.game = null;
@@ -50,71 +45,151 @@ function create() {
     BattleManager.scene = this;
     this.mode = BattleManager.mode;
 
-    // 1. 모닥불 (Idle) 그룹
+    // --- Common Graphics ---
+    // Create a simple ground texture
+    const groundG = this.make.graphics();
+    groundG.fillStyle(0x333333, 1);
+    groundG.fillRect(0, 0, 320, 2);
+    groundG.generateTexture('ground', 320, 2);
+
+    // --- IDLE GROUP (Campfire) ---
     this.idleGroup = this.add.group();
     
-    // 장작 그리기
-    const graphics = this.add.graphics();
-    graphics.fillStyle(0x8B4513, 1); // 갈색
-    graphics.fillRect(140, 180, 40, 10);
-    graphics.fillRect(155, 170, 10, 30);
-    graphics.rotation = 0.1;
-    this.idleGroup.add(graphics);
+    // 1. Starry Sky (Procedural)
+    for (let i = 0; i < 30; i++) {
+        const star = this.add.rectangle(
+            Phaser.Math.Between(0, 320), 
+            Phaser.Math.Between(0, 150), 
+            1, 1, 0xFFFFFF
+        );
+        this.tweens.add({
+            targets: star,
+            alpha: 0.2,
+            duration: Phaser.Math.Between(500, 1500),
+            yoyo: true,
+            repeat: -1
+        });
+        this.idleGroup.add(star);
+    }
 
-    // 불꽃 파티클
-    const particles = this.add.particles(0, 0, 'flare', {
-        x: 160,
-        y: 180,
-        speed: { min: 20, max: 50 },
+    // 2. Simple Hero Sitting (Geometric)
+    const heroIdle = this.add.graphics();
+    heroIdle.fillStyle(0x4D96FF, 1); // Blue body
+    heroIdle.fillRect(130, 160, 14, 14); // Body
+    heroIdle.fillStyle(0xFFCCAA, 1); // Face
+    heroIdle.fillRect(132, 150, 10, 10); // Head
+    this.idleGroup.add(heroIdle);
+
+    // 3. Campfire Logs
+    const logs = this.add.graphics();
+    logs.fillStyle(0x8B4513, 1);
+    logs.fillRect(150, 170, 20, 6);
+    logs.fillRect(155, 165, 10, 10);
+    this.idleGroup.add(logs);
+
+    // 4. Fire Particles
+    const fireParticles = this.add.particles(0, 0, 'flare', {
+        x: 160, y: 170,
+        speed: { min: 10, max: 30 },
         angle: { min: 260, max: 280 },
-        scale: { start: 0.5, end: 0 },
+        scale: { start: 0.4, end: 0 },
         blendMode: 'ADD',
-        lifespan: 1000,
+        lifespan: 800,
         frequency: 100,
-        quantity: 2
+        tint: [ 0xffaa00, 0xff0000 ] // Yellow to Red
     });
     
-    // 파티클 텍스처를 코드로 생성 (원형)
-    const texture = this.textures.createCanvas('flare', 10, 10);
-    const context = texture.getSourceImage().getContext('2d');
-    context.fillStyle = '#FF5C5C';
-    context.beginPath();
-    context.arc(5, 5, 5, 0, Math.PI * 2);
-    context.fill();
-    texture.refresh();
+    // Create 'flare' texture programmatically if not exists
+    if (!this.textures.exists('flare')) {
+        const t = this.textures.createCanvas('flare', 8, 8);
+        const c = t.getSourceImage().getContext('2d');
+        c.fillStyle = '#fff'; c.beginPath(); c.arc(4,4,4,0,Math.PI*2); c.fill();
+        t.refresh();
+    }
+    this.fireEmitter = fireParticles;
+    this.idleGroup.add(fireParticles);
 
-    this.fireEmitter = particles;
-    this.idleGroup.add(particles);
 
-    // 2. 전투 (Battle) 그룹
+    // --- BATTLE GROUP ---
     this.battleGroup = this.add.group();
-    const monster = this.add.text(160, 120, '⚔️', { fontSize: '40px' }).setOrigin(0.5);
-    this.battleGroup.add(monster);
+    
+    // 1. Background (Dark Reddish)
+    this.battleBg = this.add.rectangle(160, 100, 320, 200, 0x2a1a1a);
+    this.battleGroup.add(this.battleBg);
+    
+    // 2. Floor
+    const floor = this.add.image(160, 180, 'ground');
+    this.battleGroup.add(floor);
+
+    // 3. Hero Sprite (Simple Shapes)
+    this.heroContainer = this.add.container(80, 170);
+    const hBody = this.add.rectangle(0, -10, 16, 20, 0x4D96FF);
+    const hHead = this.add.rectangle(0, -24, 12, 12, 0xFFCCAA);
+    const hSword = this.add.rectangle(12, -10, 20, 4, 0xCCCCCC);
+    this.heroContainer.add([hBody, hHead, hSword]);
+    this.battleGroup.add(this.heroContainer);
+
+    // 4. Enemy Sprite (Slime)
+    this.enemyContainer = this.add.container(240, 175);
+    const eBody = this.add.ellipse(0, -10, 30, 20, 0x6BCB77); // Green Slime
+    const eEye1 = this.add.rectangle(-6, -14, 4, 4, 0x000000);
+    const eEye2 = this.add.rectangle(6, -14, 4, 4, 0x000000);
+    this.enemyContainer.add([eBody, eEye1, eEye2]);
+    this.battleGroup.add(this.enemyContainer);
+
     this.battleGroup.setVisible(false);
 
-    // 초기 모드 설정
+    // --- ANIMATIONS ---
+    // Idle Animation (Breathing)
+    this.tweens.add({
+        targets: [this.heroContainer, this.enemyContainer],
+        y: '+=2',
+        duration: 1000,
+        yoyo: true,
+        repeat: -1
+    });
+
+    // Battle Loop Animation
+    this.attackTween = this.tweens.createTimeline();
+    this.attackTween.add({
+        targets: this.heroContainer,
+        x: 220, // Dash to enemy
+        duration: 200,
+        ease: 'Power2'
+    });
+    this.attackTween.add({
+        targets: this.enemyContainer,
+        x: 250, // Knockback
+        alpha: 0.5,
+        duration: 50,
+        yoyo: true,
+        repeat: 1
+    });
+    this.attackTween.add({
+        targets: this.heroContainer,
+        x: 80, // Return
+        duration: 300,
+        delay: 200
+    });
+    this.attackTween.loop = -1; // Infinite loop
+
+    // --- Mode Switching ---
     this.changeMode = (m) => {
         this.mode = m;
         if (m === 'idle') {
-            this.cameras.main.setBackgroundColor('#121214'); // 어두운 배경
             this.idleGroup.setVisible(true);
             this.battleGroup.setVisible(false);
             this.fireEmitter.start();
+            if(this.attackTween.isPlaying()) this.attackTween.pause();
         } else {
-            this.cameras.main.setBackgroundColor('#2a1a1a'); // 붉은 기운 배경
             this.idleGroup.setVisible(false);
             this.battleGroup.setVisible(true);
-            this.fireEmitter.stop(); // 불 끄기
+            this.fireEmitter.stop();
+            this.attackTween.play();
         }
     };
 
-    // 최초 실행
     this.changeMode(this.mode);
 }
 
-function update() {
-    if (this.mode === 'battle') {
-        // 전투 중 흔들림 효과 등
-        this.battleGroup.getChildren()[0].rotation = Math.sin(this.time.now / 200) * 0.2;
-    }
-}
+function update() {}
