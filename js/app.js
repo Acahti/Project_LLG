@@ -4,13 +4,11 @@ import { BattleManager } from './battle.js';
 let state = DataManager.load();
 let timer = null, sessionSec = 0, activeQuestId = null;
 let selectedCoreForCreate = null, editingSkillId = null, editingMasteryId = null;
-// [신규 변수]
 let currentCategory = null, currentFolderId = null, editingItemId = null;
 let selectedIcon = 'star', selectedColor = '#4A4A4A', selectedShape = 'shape-square';
 
 const initGlobal = () => {
     const fns = {
-        // [v9.2 함수들]
         openSettingsMainModal, openGeneralSettings, openThemeSettings, openDataSettings,
         setTheme, adjustFontSize, closeModal, closeConfirmModal, switchTitleTab, equipTitle, equipJob,
         openSkillCreateModal, checkMasteryInput, createSkillAction, toggleStat,
@@ -18,11 +16,10 @@ const initGlobal = () => {
         openQuestManager, createQuestAction, confirmDeleteQuest, startBattle, 
         openRestoreSkillMode, restoreSkill, permDeleteSkill,
         openCreateShopItemModal, createShopItemAction, confirmDeleteShopItem, buyItem, openTitleModal,
-        
-        // [v10.8 보관함 함수들]
-        enterCategory, exitToPortal, updateInvRender, handleInvAdd, 
-        openFolderCreateModal, createFolderAction, openFolderSettings, saveFolderAction, deleteFolderAction,
-        saveItemAction, openItemDetail, openItemEditModal, openMoveModal, selectMoveTarget, deleteItemEdit
+        // 보관함 함수
+        enterCategory, exitToPortal, updateInvRender, handleInvAdd, openFolderCreateModal, createFolderAction, 
+        openFolderSettings, saveFolderAction, deleteFolderAction, saveItemAction, openItemDetail, openItemEditModal, 
+        openMoveModal, selectMoveTarget, deleteItemEdit
     };
     Object.entries(fns).forEach(([k, v]) => window[k] = v);
 };
@@ -33,9 +30,10 @@ const initApp = () => {
     document.body.className = state.settings.theme + '-theme';
     document.documentElement.style.setProperty('--base-font', state.settings.fontSize + 'px');
     document.getElementById('current-font-size').innerText = state.settings.fontSize;
-    bindDataEvents();
+    
     updateGlobalUI();
     renderCharacter();
+    bindDataEvents(); // [중요] 모든 DOM 렌더링 후 이벤트 연결
 };
 
 // [유틸 & 설정]
@@ -52,17 +50,17 @@ function openDataSettings() { switchModal('modal-settings-data'); }
 function setTheme(t) { state.settings.theme = t; document.body.className = t + '-theme'; DataManager.save(state); showToast("테마가 변경되었습니다."); }
 function adjustFontSize(d) { let s = state.settings.fontSize + d; if(s<8) s=8; if(s>16) s=16; state.settings.fontSize = s; document.documentElement.style.setProperty('--base-font', s+'px'); document.getElementById('current-font-size').innerText = s; DataManager.save(state); }
 
-// [Fix] 초기화 버튼 이벤트 확실하게 연결
+// [수정] 데이터 초기화 버튼 이벤트 바인딩 확실하게 처리
 function bindDataEvents() { 
-    document.getElementById('btn-reset').onclick = () => openConfirmModal("초기화", "정말 모든 데이터를 삭제하시겠습니까?", () => DataManager.reset()); 
+    const btnReset = document.getElementById('btn-reset');
+    if(btnReset) btnReset.onclick = () => openConfirmModal("데이터 초기화", "정말 모든 데이터를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.", () => DataManager.reset());
+    
     document.getElementById('btn-export').onclick = () => DataManager.export(state); 
     document.getElementById('btn-import').onclick = () => document.getElementById('file-input').click(); 
     document.getElementById('file-input').onchange = (e) => { const r = new FileReader(); r.onload = (v) => { try { state = JSON.parse(v.target.result); DataManager.save(state); location.reload(); } catch { showToast("파일 형식이 올바르지 않습니다."); } }; if(e.target.files.length) r.readAsText(e.target.files[0]); }; 
 }
 
-// ============================================
-// [v10.8 보관함 업그레이드 로직]
-// ============================================
+// [보관함 로직]
 const ICON_LIST = ['star', 'menu_book', 'psychology', 'terminal', 'fitness_center', 'military_tech', 'workspace_premium', 'shield', 'diamond', 'favorite', 'auto_awesome', 'trending_up', 'history_edu', 'palette', 'language', 'construction', 'biotech', 'emoji_events', 'flag', 'bolt'];
 const LOOT_COLORS = ['#4A4A4A', '#2D5A27', '#244A7D', '#6A329F', '#A17917'];
 const RECORD_COLORS = ['#E91E63', '#9C27B0', '#673AB7', '#3F51B5', '#2196F3', '#00BCD4', '#4CAF50', '#FFC107', '#FF9800', '#795548'];
@@ -74,7 +72,7 @@ function updateInvRender() {
     const bc = document.getElementById('inv-breadcrumb'); const folder = state.inventory.find(i => i.id === currentFolderId); bc.innerText = folder ? folder.name : (currentCategory === 'loot' ? '전리품' : '기록');
     document.getElementById('btn-folder-settings').style.display = currentFolderId ? 'flex' : 'none';
     
-    // [Fix] 전리품일 때 추가 버튼 숨김
+    // [Fix] 전리품이면 추가 버튼 숨김
     document.getElementById('btn-add-inv').style.display = (currentCategory === 'loot') ? 'none' : 'block';
 
     const grid = document.getElementById('inventory-grid'); grid.innerHTML = '';
@@ -96,18 +94,26 @@ function openFolderCreateModal() { document.getElementById('new-folder-name').va
 function createFolderAction() { const n = document.getElementById('new-folder-name').value.trim(); if(!n) return showToast("이름을 입력해주세요."); state.inventory.push({ id:'f'+Date.now(), type:'folder', category: currentCategory, name: n, parentId: null, timestamp: Date.now() }); DataManager.save(state); updateInvRender(); closeModal('modal-create-folder'); }
 function openFolderSettings() { if(!currentFolderId) return; const f = state.inventory.find(i=>i.id===currentFolderId); document.getElementById('edit-folder-name').value = f.name; document.getElementById('modal-folder-settings').style.display = 'flex'; }
 function saveFolderAction() { if(!currentFolderId) return; const n = document.getElementById('edit-folder-name').value.trim(); if(!n) return showToast("이름을 입력해주세요."); const f = state.inventory.find(i=>i.id===currentFolderId); f.name = n; DataManager.save(state); updateInvRender(); closeModal('modal-folder-settings'); showToast("변경되었습니다."); }
-function deleteFolderAction() { if(!currentFolderId) return; if(state.inventory.some(i=>i.parentId===currentFolderId)) return showToast("폴더가 비어있지 않아 삭제할 수 없습니다."); state.inventory = state.inventory.filter(i=>i.id!==currentFolderId); currentFolderId = null; DataManager.save(state); updateInvRender(); closeModal('modal-folder-settings'); showToast("폴더가 삭제되었습니다."); }
+function deleteFolderAction() { if(!currentFolderId) return; if(state.inventory.some(i=>i.parentId===currentFolderId)) return showToast("폴더가 비어있지 않습니다."); state.inventory = state.inventory.filter(i=>i.id!==currentFolderId); currentFolderId = null; DataManager.save(state); updateInvRender(); closeModal('modal-folder-settings'); showToast("삭제되었습니다."); }
 function openItemDetail(id) {
     const i = state.inventory.find(x=>x.id===id); editingItemId=id; const modal = document.getElementById('modal-item-detail');
     document.getElementById('detail-badge').className = `badge-box ${i.shape||'shape-square'}`; document.getElementById('detail-badge').style.background = i.color; document.getElementById('detail-badge').innerHTML = `<span class="material-icons-round" style="font-size:2.5em;">${i.icon}</span>`;
     document.getElementById('detail-name').innerText = i.name; document.getElementById('detail-desc').innerText = i.desc || '내용 없음';
     const isLoot = i.type === 'loot';
     const btnEdit = document.getElementById('btn-edit-item'); const btnDel = document.getElementById('btn-delete-item'); const btnMove = document.getElementById('btn-move-item');
-    // [Fix] 기록물만 삭제 가능
+    
     btnEdit.style.display = isLoot ? 'none' : 'flex'; 
     btnDel.style.display = isLoot ? 'none' : 'flex';
+    
+    // [Fix] 기록물 삭제 버튼 이벤트 직접 할당 (중요!)
     btnEdit.onclick = () => openItemEditModal(id);
-    btnDel.onclick = () => openConfirmModal("삭제", "정말 삭제하시겠습니까?", () => { state.inventory = state.inventory.filter(x => x.id !== id); DataManager.save(state); updateInvRender(); closeModal('modal-item-detail'); showToast("삭제되었습니다."); });
+    btnDel.onclick = () => openConfirmModal("삭제", "정말 삭제하시겠습니까?", () => { 
+        state.inventory = state.inventory.filter(x => x.id !== id); 
+        DataManager.save(state); 
+        updateInvRender(); 
+        closeModal('modal-item-detail'); 
+        showToast("삭제되었습니다."); 
+    });
     btnMove.onclick = () => openMoveModal(id);
     modal.style.display = 'flex';
 }
@@ -140,7 +146,7 @@ function openMoveModal(id) {
 }
 function selectMoveTarget(itemId, targetFolderId) { const item = state.inventory.find(i => i.id === itemId); if(item) { item.parentId = targetFolderId; DataManager.save(state); updateInvRender(); } closeModal('modal-move-item'); closeModal('modal-item-detail'); showToast("이동되었습니다."); }
 
-// [기본 로직 (v9.2 복구)]
+// [기본 로직 (v9.2 + Fixes)]
 function drawRadarChart() {
     const c = document.getElementById('stat-radar'); if(!c) return; const ctx = c.getContext('2d'), w = c.width, h = c.height, cx = w/2, cy = h/2, r = w/2 - 40; ctx.clearRect(0,0,w,h); ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--border').trim(); ctx.lineWidth = 1; for(let i=1; i<=5; i++) { ctx.beginPath(); for(let j=0; j<5; j++) { const a = (Math.PI*2*j)/5 - Math.PI/2; ctx.lineTo(cx+(r/5)*i*Math.cos(a), cy+(r/5)*i*Math.sin(a)); } ctx.closePath(); ctx.stroke(); }
     const stats = ['STR','DEX','INT','WIS','VIT']; const levels = stats.map(k => state.cores[k].level); const maxVal = Math.max(20, ...levels) * 1.2; ctx.beginPath(); ctx.fillStyle = 'rgba(77,150,255,0.4)'; ctx.strokeStyle = '#4D96FF'; ctx.lineWidth = 2; stats.forEach((k,i) => { const v = state.cores[k].level; const a = (Math.PI*2*i)/5 - Math.PI/2; ctx.lineTo(cx+(v/maxVal)*r*Math.cos(a), cy+(v/maxVal)*r*Math.sin(a)); }); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#888'; ctx.font = '10px "Press Start 2P"'; ctx.textAlign = 'center'; stats.forEach((k,i) => { const a = (Math.PI*2*i)/5 - Math.PI/2; ctx.fillText(k, cx+(r+20)*Math.cos(a), cy+(r+20)*Math.sin(a)+4); });
@@ -153,13 +159,25 @@ function updateGlobalUI() {
 }
 function renderCharacter() {
     const l = document.getElementById('stats-list'); l.innerHTML = '';
-    ['STR','DEX','INT','WIS','VIT'].forEach(c => { const d = document.createElement('div'); d.className = 'stat-item'; d.innerHTML = `<div class="stat-header" onclick="toggleStat('${c}')"><span style="color:${state.cores[c].color}">● ${state.cores[c].name}</span><span>Lv.${state.cores[c].level} ▼</span></div><div id="detail-${c}" class="stat-detail" style="display:none;"></div>`; l.appendChild(d); const b = d.querySelector(`#detail-${c}`); for(let m in state.masteries) { if(state.masteries[m].core !== c) continue; let sh = ''; for(let s in state.skills) if(state.skills[s].mastery === m && !state.skills[s].hidden) sh += `<div class="skill-row"><div style="flex:1">- ${state.skills[s].name} (Lv.${state.skills[s].level})</div><button class="btn-edit" onclick="openEditSkillModal('${s}')">✎</button></div>`; b.innerHTML += `<div class="mastery-header"><span class="mastery-title">${state.masteries[m].name}</span><button class="btn-edit" onclick="openEditMasteryModal('${m}')">✎</button></div>${sh||'<div style="font-size:0.8em;color:#555;padding:5px;">없음</div>'}`; } });
+    ['STR','DEX','INT','WIS','VIT'].forEach(c => { const d = document.createElement('div'); d.className = 'stat-item'; d.innerHTML = `<div class="stat-header" onclick="toggleStat('${c}')"><span style="color:${state.cores[c].color}">● ${state.cores[c].name}</span><span>Lv.${state.cores[c].level} ▼</span></div><div id="detail-${c}" class="stat-detail" style="display:none;"></div>`; l.appendChild(d); const b = d.querySelector(`#detail-${c}`); 
+    let has = false;
+    for(let m in state.masteries) { 
+        if(state.masteries[m].core !== c) continue; let sh = ''; 
+        for(let s in state.skills) if(state.skills[s].mastery === m && !state.skills[s].hidden) sh += `<div class="skill-row"><div style="flex:1">- ${state.skills[s].name} (Lv.${state.skills[s].level})</div><button class="btn-edit" onclick="openEditSkillModal('${s}')">✎</button></div>`; 
+        b.innerHTML += `<div class="mastery-header"><span class="mastery-title">${state.masteries[m].name}</span><button class="btn-edit" onclick="openEditMasteryModal('${m}')">✎</button></div>${sh||'<div style="font-size:0.8em;color:#555;padding:5px;">스킬 없음</div>'}`; 
+        has = true; 
+    } 
+    if(!has) b.innerHTML = '<div style="font-size:0.8em;color:#555;padding:10px;">스킬 없음</div>'; // [Fix] 스킬 없음 텍스트
+    });
 }
 function toggleStat(id) { const e = document.getElementById(`detail-${id}`); e.style.display = e.style.display==='none'?'block':'none'; }
+
+// [수정] 스킬 생성 로직: NEW 선택 시 입력창 표시
 function openSkillCreateModal() { document.getElementById('modal-create-skill').style.display='flex'; const g=document.getElementById('core-select-group'); g.innerHTML=''; ['STR','DEX','INT','WIS','VIT'].forEach(c=>{ const d=document.createElement('div'); d.className='chip'; d.innerText=c; d.onclick=()=>{ document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active')); d.classList.add('active'); selectedCoreForCreate=c; updateMasterySelect(c); }; g.appendChild(d); }); updateMasterySelect(null); }
-function updateMasterySelect(c) { const s=document.getElementById('new-mastery-select'); s.innerHTML=''; if(!c){s.innerHTML='<option>-- 선택 --</option>'; return;} for(let m in state.masteries) if(state.masteries[m].core===c) s.innerHTML+=`<option value="${m}">${state.masteries[m].name}</option>`; s.innerHTML+='<option value="NEW">+ 생성</option>'; checkMasteryInput(); }
+function updateMasterySelect(c) { const s=document.getElementById('new-mastery-select'); s.innerHTML=''; if(!c){s.innerHTML='<option>-- 선택 --</option>'; return;} for(let m in state.masteries) if(state.masteries[m].core===c) s.innerHTML+=`<option value="${m}">${state.masteries[m].name}</option>`; s.innerHTML+='<option value="NEW">+ 새 마스터리 생성</option>'; checkMasteryInput(); }
 function checkMasteryInput() { document.getElementById('new-mastery-input').style.display=document.getElementById('new-mastery-select').value==='NEW'?'block':'none'; }
-function createSkillAction() { if(!selectedCoreForCreate) return; let m=document.getElementById('new-mastery-select').value; if(m==='NEW'){ m='m'+Date.now(); state.masteries[m]={name:document.getElementById('new-mastery-input').value, core:selectedCoreForCreate, level:0}; } state.skills['s'+Date.now()]={name:document.getElementById('new-skill-name').value, mastery:m, seconds:0, level:0, hidden:false}; DataManager.save(state); closeModal('modal-create-skill'); updateGlobalUI(); renderCharacter(); showToast("스킬을 습득했습니다."); }
+function createSkillAction() { if(!selectedCoreForCreate) return showToast("스탯을 선택해주세요."); let m=document.getElementById('new-mastery-select').value; const mi=document.getElementById('new-mastery-input').value.trim(); const sn=document.getElementById('new-skill-name').value.trim(); if(m==='NEW'&&!mi) return showToast("마스터리 이름을 입력해주세요."); if(!sn) return showToast("스킬 이름을 입력해주세요."); if(m==='NEW'){ m='m'+Date.now(); state.masteries[m]={name:mi,core:selectedCoreForCreate,level:0}; } state.skills['s'+Date.now()]={name:sn,mastery:m,seconds:0,level:0,hidden:false}; DataManager.save(state); closeModal('modal-create-skill'); updateGlobalUI(); renderCharacter(); showToast("스킬을 습득했습니다."); }
+
 function openQuestManager() { document.getElementById('modal-create-quest').style.display='flex'; const m=document.getElementById('quest-main-skill'); const s=document.getElementById('quest-sub-skill'); m.innerHTML=''; s.innerHTML='<option value="">-- 보너스 없음 --</option>'; Object.entries(state.skills).filter(([k,v])=>!v.hidden).forEach(([k,v])=>{const opt=`<option value="${k}">${v.name}</option>`; m.innerHTML+=opt; s.innerHTML+=opt;}); }
 function createQuestAction() { state.quests['q'+Date.now()]={name:document.getElementById('new-quest-name').value, mainSkillId:document.getElementById('quest-main-skill').value, subSkillId:document.getElementById('quest-sub-skill').value}; DataManager.save(state); closeModal('modal-create-quest'); renderQuest(); showToast("의뢰가 등록되었습니다."); }
 function renderQuest() { const c=document.getElementById('quest-container'); c.innerHTML=''; for(let q in state.quests){ const d=state.quests[q]; const m=state.skills[d.mainSkillId]; if(!m||m.hidden)continue; c.innerHTML+=`<div class="card quest-card"><div class="quest-info"><div class="quest-title">${d.name}</div><div class="quest-sub">Main: ${m.name}</div></div><button class="btn-sm" onclick="startBattle('${q}')">수락</button></div>`; } }
@@ -167,8 +185,14 @@ function confirmDeleteQuest(id) { openConfirmModal("삭제", "정말 삭제하�
 function startBattle(id) { activeQuestId=id; sessionSec=0; document.querySelectorAll('.tab-screen').forEach(s=>s.classList.remove('active')); document.getElementById('tab-battle').classList.add('active'); document.getElementById('battle-quest-name').innerText=state.quests[id].name; BattleManager.init(); timer=setInterval(()=>{sessionSec++; document.getElementById('battle-timer').innerText=`${sessionSec}`;}, 1000); }
 document.getElementById('btn-stop').onclick=()=>{ clearInterval(timer); BattleManager.destroy(); const q=state.quests[activeQuestId]; state.skills[q.mainSkillId].seconds+=sessionSec; state.gold+=sessionSec; if(q.subSkillId)state.skills[q.subSkillId].seconds+=Math.floor(sessionSec*0.2); DataManager.save(state); updateGlobalUI(); showToast("완료"); document.querySelectorAll('.tab-screen').forEach(s=>s.classList.remove('active')); document.getElementById('tab-quest').classList.add('active'); };
 
-// [Fix] 기억의 무덤: 영구삭제 추가
-function openRestoreSkillMode() { document.getElementById('modal-restore-skill').style.display='flex'; const l=document.getElementById('deleted-skill-list'); l.innerHTML=''; for(let s in state.skills) if(state.skills[s].hidden) l.innerHTML+=`<div class="list-item"><span>${state.skills[s].name}</span><div style="display:flex;gap:5px;"><button class="btn-sm" onclick="restoreSkill('${s}')">복구</button><button class="btn-sm btn-danger" onclick="permDeleteSkill('${s}')">영구삭제</button></div></div>`; }
+// [수정] 기억의 무덤: 영구삭제 추가
+function openRestoreSkillMode() { 
+    document.getElementById('modal-restore-skill').style.display='flex'; 
+    const l=document.getElementById('deleted-skill-list'); l.innerHTML=''; 
+    for(let s in state.skills) if(state.skills[s].hidden) {
+        l.innerHTML+=`<div class="list-item"><span>${state.skills[s].name}</span><div style="display:flex;gap:5px;"><button class="btn-sm" onclick="restoreSkill('${s}')">복구</button><button class="btn-sm btn-danger" onclick="permDeleteSkill('${s}')">영구삭제</button></div></div>`; 
+    }
+}
 function restoreSkill(id) { state.skills[id].hidden=false; DataManager.save(state); openRestoreSkillMode(); renderCharacter(); showToast("복구되었습니다."); }
 function permDeleteSkill(id) { openConfirmModal("삭제", "정말 삭제하시겠습니까?", ()=>{ delete state.skills[id]; DataManager.save(state); openRestoreSkillMode(); showToast("영구 삭제되었습니다."); }); }
 
@@ -177,8 +201,11 @@ document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>switchTab(b.datas
 function openCreateShopItemModal() { document.getElementById('modal-create-shop-item').style.display='flex'; }
 function createShopItemAction() { state.shopItems.push({id:'i'+Date.now(), name:document.getElementById('new-shop-item-name').value, cost:document.getElementById('new-shop-item-cost').value}); DataManager.save(state); renderShop(); closeModal('modal-create-shop-item'); }
 
-// [Fix] 상점 버튼 우측 정렬
-function renderShop() { const c=document.getElementById('shop-container'); c.innerHTML=''; state.shopItems.forEach(i=>c.innerHTML+=`<div class="shop-item"><span>${i.name}</span><div class="shop-actions"><button class="btn-sm btn-shop" onclick="buyItem('${i.id}',${i.cost})">${i.cost}G</button><button class="btn-sm btn-danger" onclick="confirmDeleteShopItem('${i.id}')">🗑️</button></div></div>`); }
+// [수정] 상점 렌더링 (버튼 우측 정렬)
+function renderShop() { 
+    const c=document.getElementById('shop-container'); c.innerHTML=''; 
+    state.shopItems.forEach(i=>c.innerHTML+=`<div class="shop-item card"><span class="shop-name">${i.name}</span><div class="shop-actions"><button class="btn-sm btn-shop" onclick="buyItem('${i.id}',${i.cost})">${i.cost}G</button><button class="btn-sm btn-danger" onclick="confirmDeleteShopItem('${i.id}')">🗑️</button></div></div>`); 
+}
 function buyItem(id,cost) { if(state.gold>=cost){state.gold-=cost;DataManager.save(state);updateGlobalUI();showToast("구매 완료");}else showToast("골드가 부족합니다."); }
 function confirmDeleteShopItem(id){ openConfirmModal("삭제", "정말 삭제하시겠습니까?", ()=>{state.shopItems=state.shopItems.filter(i=>i.id!==id); DataManager.save(state); renderShop(); showToast("삭제되었습니다.");}); }
 
