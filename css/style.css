@@ -1,4 +1,4 @@
-/* [v11.1] 레트로 RPG 감성 폰트: 둥근모 */
+/* [v11.2] 레트로 RPG 감성 폰트: 둥근모 */
 @import url('https://cdn.jsdelivr.net/gh/dunggeunmo/dunggeunmo/dunggeunmo.css');
 
 :root {
@@ -9,7 +9,6 @@
     --btn-sec-text: #aaa;
     --safe-top: env(safe-area-inset-top, 20px);
     --safe-bottom: env(safe-area-inset-bottom, 20px);
-    /* 기본 폰트 설정 */
     --base-font: 12px; 
 }
 
@@ -145,18 +144,24 @@ button:active { transform: translateY(2px); border-bottom-width: 2px; }
 }
 
 /* ========================================= */
-/* [v11.0] 보관함(Inventory) 전용 스타일 */
+/* [v11.2] 보관함 및 포털 버튼 디자인 개선 */
 /* ========================================= */
 .inv-portal { display: flex; flex-direction: column; gap: 15px; height: 100%; justify-content: center; }
+
+/* 포털 버튼: 내용물 타이트하게 정렬 */
 .portal-btn { 
-    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; 
+    flex: 1; 
+    display: flex; flex-direction: column; align-items: center; justify-content: center; 
     background: var(--bg-panel); border: 2px solid var(--border); border-radius: 12px; cursor: pointer;
     transition: transform 0.2s, border-color 0.2s;
+    gap: 0; /* 내부 간격 제거 */
 }
 .portal-btn:active { transform: scale(0.98); }
-.portal-btn h2 { margin: 10px 0 5px 0; color: var(--text); font-size: 1.4em; }
-.portal-btn p { color: #888; font-size: 1em; margin: 0; }
-.portal-icon { font-size: 3.5em; color: var(--accent); margin-bottom: 10px; }
+
+/* 텍스트와 아이콘 간격 최소화 */
+.portal-btn h2 { margin: 2px 0 2px 0; color: var(--text); font-size: 1.4em; }
+.portal-btn p { color: #888; font-size: 0.9em; margin: 0; }
+.portal-icon { font-size: 3.0em; color: var(--accent); margin-bottom: 0; /* 마진 제거 */ }
 
 .inv-nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
 .inv-path { color: var(--text); text-align: center; flex:1; font-size: 1.1em; }
@@ -222,15 +227,12 @@ button:active { transform: translateY(2px); border-bottom-width: 2px; }
 .icon-option:hover { background: rgba(255,255,255,0.1); color: #fff; }
 .icon-option.selected { background: var(--accent); color: #fff; }
 
-/* [v11.1] 아이템 상세 모달 레이아웃 개선 */
 .modal-detail-container {
     display: flex;
     flex-direction: column;
     height: 100%;
     min-height: 400px;
 }
-
-/* 상단: 아이콘 및 이름 (약 20~25%) */
 .detail-header {
     flex: 0 0 auto;
     text-align: center;
@@ -250,8 +252,6 @@ button:active { transform: translateY(2px); border-bottom-width: 2px; }
     margin-bottom: 10px;
     color: var(--accent);
 }
-
-/* 중단: 내용 (약 65~70%) - 스크롤 가능 */
 .detail-body {
     flex: 1;
     overflow-y: auto;
@@ -265,8 +265,6 @@ button:active { transform: translateY(2px); border-bottom-width: 2px; }
     color: #ccc;
     white-space: pre-wrap;
 }
-
-/* 하단: 액션 버튼 (약 10%) - 작고 컴팩트하게 */
 .detail-footer {
     flex: 0 0 auto;
     display: flex;
@@ -288,8 +286,6 @@ button:active { transform: translateY(2px); border-bottom-width: 2px; }
     border-radius: 4px;
     flex: 1;
 }
-
-/* 모달 컨텐츠 크기 강제 조정 (상세 모달만) */
 #modal-item-detail .modal-content {
     height: 70vh; 
     max-height: 600px;
