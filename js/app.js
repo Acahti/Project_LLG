@@ -5,7 +5,6 @@ let state = DataManager.load();
 let timer = null, sessionSec = 0, activeQuestId = null;
 let selectedCoreForCreate = null, editingSkillId = null, editingMasteryId = null, editingItemId = null;
 
-// 보관함 상태 관리
 let invState = {
     view: 'portal', 
     category: null, 
@@ -13,7 +12,6 @@ let invState = {
 };
 let editingFolderId = null; 
 
-// 기록용 팔레트 및 아이콘
 const RECORD_COLORS = ['#FF5C5C', '#FF9F43', '#FFD700', '#6BCB77', '#4D96FF', '#9D84FF', '#FF85C0', '#777777'];
 const RECORD_ICONS = [
     'menu_book', 'edit', 'article', 'star', 'favorite', 'emoji_events', 
@@ -24,7 +22,6 @@ const RECORD_ICONS = [
 let selectedItemColor = RECORD_COLORS[0];
 let selectedItemIcon = RECORD_ICONS[0];
 
-// 초기화
 if(!state.settings) state.settings = { theme: 'dark', fontSize: 12 };
 const initApp = () => {
     document.body.className = state.settings.theme + '-theme';
@@ -498,7 +495,6 @@ function renderShop() {
     });
 }
 
-// [수정됨] 구매: 기록 생성 없이 골드만 차감
 window.buyItem = (id, cost) => {
     if(state.gold >= cost) {
         openConfirmModal("구매 확인", "정말 구매하시겠습니까?", () => { 
@@ -574,7 +570,6 @@ window.confirmDeleteQuest = (id) => {
 };
 window.confirmDeleteShopItem=(id)=>{openConfirmModal("상품 삭제", "정말 삭제하시겠습니까?", ()=>{state.shopItems=state.shopItems.filter(i=>i.id!==id);DataManager.save(state);renderShop();showToast("삭제되었습니다.");});};
 
-// [수정됨] 전투 시작: 중복 실행 방지
 window.startBattle=(id)=>{
     if (activeQuestId || timer) { 
         return showToast("이미 진행 중인 의뢰가 있습니다.");
@@ -582,7 +577,7 @@ window.startBattle=(id)=>{
     activeQuestId=id;
     sessionSec=0;
     
-    // 탭 이동 함수 호출
+    // [v11.6 Fix] 탭 전환 후 UI 업데이트 (순서 중요)
     window.switchTab('battle');
 };
 
@@ -593,7 +588,7 @@ document.getElementById('btn-stop').onclick=()=>{if(!timer)return;clearInterval(
         state.inventory.push({id:lid,type:'loot',icon:'redeem',name:'전리품',desc:'수련 보상', folderId:null});
         msg+=' [전리품 획득!]';
     }
-    showToast(msg);sessionSec=0;activeQuestId=null;DataManager.save(state);updateGlobalUI();
+    showToast(msg);sessionSec=0;activeQuestId=null;DataManager.save(state);updateGlobalUI();switchTab('quest');
     
     // UI 대기 모드로 전환
     updateBattleUI('idle');
@@ -606,7 +601,7 @@ window.openRestoreSkillMode=()=>{document.getElementById('modal-restore-skill').
 window.restoreSkill=(sid)=>{state.skills[sid].hidden=false;DataManager.save(state);openRestoreSkillMode();renderCharacter();showToast("복구되었습니다.");};
 window.permDeleteSkill=(sid)=>{openConfirmModal("영구 삭제", "정말 삭제하시겠습니까?", ()=>{delete state.skills[sid];DataManager.save(state);openRestoreSkillMode();updateGlobalUI();showToast("삭제되었습니다.");});};
 
-// [중요 수정] switchTab을 window에 할당하여 HTML onclick에서 호출 가능하게 함
+// [v11.6 Fix] 탭 전환 및 UI 업데이트 통합 (window 할당)
 const switchTab = (t) => {
     document.querySelectorAll('.tab-screen').forEach(e=>e.classList.remove('active'));
     document.getElementById(`tab-${t}`).classList.add('active');
@@ -623,16 +618,15 @@ const switchTab = (t) => {
     }
     if(t==='shop') renderShop();
     
-    // 전투 탭 진입 시 UI 갱신 로직: 순서가 중요함
+    // 전투 탭 진입 시 UI 갱신 (DOM이 그려진 후 실행)
     if (t === 'battle') {
-        // DOM이 보이기 시작한 직후에 Phaser를 초기화해야 함
         setTimeout(() => {
             if (activeQuestId) {
                 updateBattleUI('battle');
             } else {
                 updateBattleUI('idle');
             }
-        }, 10);
+        }, 50); // DOM 렌더링 확보용 지연
     }
 };
 window.switchTab = switchTab; 
@@ -656,6 +650,7 @@ function updateBattleUI(mode) {
         btnSelect.style.display = 'none';
         btnStop.style.display = 'flex';
         
+        // 중복 타이머 방지
         if (timer) clearInterval(timer);
         timer = setInterval(() => {
             sessionSec++;
