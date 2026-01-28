@@ -4,9 +4,9 @@ const STORAGE_KEY = 'LLG_DATA_V12_FINAL';
 const DEFAULT_STATE = {
     gold: 0,
     totalLevel: 0,
-    currentTitle: "모험가",
+    currentTitle: "없음",
     currentJob: "무직",
-    unlockedTitles: ["모험가"],
+    unlockedTitles: ["없음", "신입"],
     unlockedJobs: ["무직"],
     
     inventory: [], 
