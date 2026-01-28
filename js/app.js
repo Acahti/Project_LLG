@@ -160,7 +160,7 @@ function updateGlobalUI() {
 }
 
 /**
- * [v12.6] 스킬 리스트 렌더링 (경험치 퍼센트 표시 추가)
+ * [v12.7] 세련된 스킬 UI (경험치 바 도입)
  */
 function renderCharacter() {
     const list = document.getElementById('stats-list'); list.innerHTML = '';
@@ -177,20 +177,30 @@ function renderCharacter() {
             for(let sid in state.skills) {
                 const s = state.skills[sid]; if(s.mastery !== mid || s.hidden) continue;
                 
-                // --- [v12.6 핵심] 경험치 퍼센트 계산 (3600초 = 100%) ---
                 const skillLevel = Math.floor(s.seconds / 3600);
                 const skillExpPercent = ((s.seconds % 3600) / 3600 * 100).toFixed(1);
                 
+                // 디자인 개편: 이름, 레벨배지, 경험치바 분리
                 sh += `
-                <div class="skill-row">
-                    <div style="flex:1; font-size:0.9em;">
-                        - ${s.name} <span style="color:var(--accent); font-size:0.85em;">(Lv.${skillLevel}, ${skillExpPercent}%)</span>
+                <div class="skill-row-container">
+                    <div class="skill-main-info">
+                        <span class="skill-name-text">${s.name}</span>
+                        <div class="skill-lv-section">
+                            <span class="skill-lv-label">Lv.</span>
+                            <span class="skill-lv-value">${skillLevel}</span>
+                        </div>
                     </div>
-                    <button class="btn-edit" onclick="openEditSkillModal('${sid}')">✎</button>
+                    <div class="skill-progress-area">
+                        <div class="skill-progress-track">
+                            <div class="skill-progress-fill" style="width: ${skillExpPercent}%"></div>
+                            <span class="skill-exp-percent-text">${skillExpPercent}%</span>
+                        </div>
+                        <button class="btn-edit-mini" onclick="openEditSkillModal('${sid}')">✎</button>
+                    </div>
                 </div>`;
             }
-            if(sh || true) {
-                box.innerHTML += `<div class="mastery-header"><span class="mastery-title">${m.name} (Lv.${m.level})</span><button class="btn-edit" onclick="openEditMasteryModal('${mid}')">✎</button></div>${sh || '<div style="font-size:0.8em;color:#555;padding:5px;">스킬 없음</div>'}`;
+            if(sh) {
+                box.innerHTML += `<div class="mastery-header"><span class="mastery-title">${m.name} (Lv.${m.level})</span><button class="btn-edit" onclick="openEditMasteryModal('${mid}')">✎</button></div>${sh}`;
                 has = true;
             }
         }
@@ -251,7 +261,7 @@ function updateInvRender() {
 
 window.openItemDetailModal = (id) => { editingItemId = id; const item = state.inventory.find(i => i.id === id); document.getElementById('detail-item-icon').innerText = item.icon; document.getElementById('detail-item-icon').style.color = item.type === 'record' ? 'var(--accent)' : 'var(--gold)'; document.getElementById('detail-item-name').innerText = item.name; document.getElementById('detail-item-type').innerText = item.type === 'record' ? '기록물' : '전리품'; document.getElementById('detail-item-desc').innerText = item.desc || '(내용 없음)'; const select = document.getElementById('detail-move-select'); select.innerHTML = '<option value="">(최상위)</option>'; const folders = state.folders.filter(f => f.type === invState.category); folders.forEach(f => { const selected = item.folderId === f.id ? 'selected' : ''; select.innerHTML += `<option value="${f.id}" ${selected}>${f.name}</option>`; }); const isRecord = item.type === 'record'; const actionGroup = document.getElementById('record-only-actions'); actionGroup.style.display = isRecord ? 'flex' : 'none'; document.getElementById('modal-item-detail').style.display = 'flex'; };
 window.openCreateItemModal = () => { editingItemId = null; document.querySelector('#modal-create-item h3').innerText = "새로운 기록"; document.getElementById('new-item-name').value = ''; document.getElementById('new-item-desc').value = ''; const palette = document.getElementById('new-item-color-picker'); palette.innerHTML = ''; selectedItemColor = RECORD_COLORS[0]; RECORD_COLORS.forEach(c => { const div = document.createElement('div'); div.className = `color-option ${c===selectedItemColor?'selected':''}`; div.style.backgroundColor = c; div.onclick = () => { selectedItemColor = c; document.querySelectorAll('.color-option').forEach(e => e.classList.remove('selected')); div.classList.add('selected'); }; palette.appendChild(div); }); const grid = document.getElementById('new-item-icon-picker'); grid.innerHTML = ''; selectedItemIcon = RECORD_ICONS[0]; RECORD_ICONS.forEach(ic => { const div = document.createElement('div'); div.className = `icon-option ${ic===selectedItemIcon?'selected':''}`; div.innerHTML = `<span class="material-icons-round">${ic}</span>`; div.onclick = () => { selectedItemIcon = ic; document.querySelectorAll('.icon-option').forEach(e => e.classList.remove('selected')); div.classList.add('selected'); }; grid.appendChild(div); }); document.getElementById('modal-create-item').style.display='flex'; };
-window.openEditItemMode = () => { closeModal('modal-item-detail'); const i = state.inventory.find(x => x.id === editingItemId); document.querySelector('#modal-create-item h3').innerText = "기록 수정"; document.getElementById('new-item-name').value = i.name; document.getElementById('new-item-desc').value = i.desc; selectedItemColor = i.color || RECORD_COLORS[0]; const palette = document.getElementById('new-item-color-picker'); palette.innerHTML = ''; RECORD_COLORS.forEach(c => { const div = document.createElement('div'); div.className = `color-option ${c===selectedItemColor?'selected':''}`; div.style.backgroundColor = c; div.onclick = () => { selectedItemColor = c; renderPaletteSelection(); }; palette.appendChild(div); }); function renderPaletteSelection(){ document.querySelectorAll('.color-option').forEach(e => { e.classList.toggle('selected', e.style.backgroundColor === selectedItemColor || e.style.backgroundColor.replace(/\s/g, '') === 'rgb('+hexToRgb(selectedItemColor)+')'); }); } selectedItemIcon = i.icon || RECORD_ICONS[0]; const grid = document.getElementById('new-item-icon-picker'); grid.innerHTML = ''; RECORD_ICONS.forEach(ic => { const div = document.createElement('div'); div.className = `icon-option ${ic===selectedItemIcon?'selected':''}`; div.innerHTML = `<span class="material-icons-round">${ic}</span>`; div.onclick = () => { selectedItemIcon = ic; document.querySelectorAll('.icon-option').forEach(e => e.classList.remove('selected')); div.classList.add('selected'); }; grid.appendChild(div); }); function renderIconSelection() { document.querySelectorAll('.icon-option').forEach(e => { e.classList.toggle('selected', e.innerText === selectedItemIcon); }); } function hexToRgb(hex) { var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex); return result ? `${parseInt(result[1], 16)},${parseInt(result[2], 16)},${parseInt(result[3], 16)}` : null; } document.getElementById('modal-create-item').style.display='flex'; };
+window.openEditItemMode = () => { closeModal('modal-item-detail'); const i = state.inventory.find(x => x.id === editingItemId); document.querySelector('#modal-create-item h3').innerText = "기록 수정"; document.getElementById('new-item-name').value = i.name; document.getElementById('new-item-desc').value = i.desc; selectedItemColor = i.color || RECORD_COLORS[0]; const palette = document.getElementById('new-item-color-picker'); palette.innerHTML = ''; RECORD_COLORS.forEach(c => { const div = document.createElement('div'); div.className = `color-option ${c===selectedItemColor?'selected':''}`; div.style.backgroundColor = c; div.onclick = () => { selectedItemColor = c; renderPaletteSelection(); }; palette.appendChild(div); }); function renderPaletteSelection(){ document.querySelectorAll('.color-option').forEach(e => { e.classList.toggle('selected', e.style.backgroundColor === selectedItemColor || e.style.backgroundColor.replace(/\s/g, '') === 'rgb('+hexToRgb(selectedItemColor)+')'); }); } selectedItemIcon = i.icon || RECORD_ICONS[0]; const grid = document.getElementById('new-item-icon-picker'); grid.innerHTML = ''; RECORD_ICONS.forEach(ic => { const div = document.createElement('div'); div.className = `icon-option ${ic===selectedItemIcon?'selected':''}`; div.innerHTML = `<span class="material-icons-round">${ic}</span>`; div.onclick = () => { selectedItemIcon = ic; renderIconSelection(); }; grid.appendChild(div); }); function renderIconSelection() { document.querySelectorAll('.icon-option').forEach(e => { e.classList.toggle('selected', e.innerText === selectedItemIcon); }); } function hexToRgb(hex) { var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex); return result ? `${parseInt(result[1], 16)},${parseInt(result[2], 16)},${parseInt(result[3], 16)}` : null; } document.getElementById('modal-create-item').style.display='flex'; };
 window.createItemAction = () => { const n = document.getElementById('new-item-name').value.trim(); const d = document.getElementById('new-item-desc').value; if(!n) return showToast("이름을 입력해주세요."); if(editingItemId) { const item = state.inventory.find(x => x.id === editingItemId); item.name = n; item.desc = d; item.icon = selectedItemIcon; item.color = selectedItemColor; showToast("수정되었습니다."); } else { state.inventory.push({ id: 'r'+Date.now(), type: 'record', icon: selectedItemIcon, color: selectedItemColor, name: n, desc: d||'', folderId: invState.folderId }); showToast("기록되었습니다."); } DataManager.save(state); updateInvRender(); closeModal('modal-create-item'); };
 window.openCreateFolderModal = () => { editingFolderId = null; document.getElementById('folder-modal-title').innerText = "폴더 생성"; document.getElementById('input-folder-name').value = ""; document.getElementById('folder-delete-zone').style.display = 'none'; document.getElementById('modal-folder-manager').style.display = 'flex'; };
 window.openEditFolderModal = (fid) => { editingFolderId = fid; const f = state.folders.find(x => x.id === fid); document.getElementById('folder-modal-title').innerText = "폴더 관리"; document.getElementById('input-folder-name').value = f.name; document.getElementById('folder-delete-zone').style.display = 'block'; document.getElementById('modal-folder-manager').style.display = 'flex'; };
