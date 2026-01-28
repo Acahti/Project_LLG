@@ -5,7 +5,7 @@ let state = DataManager.load();
 let timer = null, sessionSec = 0, activeQuestId = null;
 let selectedCoreForCreate = null, editingSkillId = null, editingMasteryId = null, editingItemId = null;
 
-// [v10.9] 보관함 상태 관리 변수
+// 보관함 상태 관리
 let invState = {
     view: 'portal', 
     category: null, 
@@ -13,7 +13,7 @@ let invState = {
 };
 let editingFolderId = null; 
 
-// [v11.0] 기록용 색상 팔레트 및 아이콘 리스트
+// 기록용 팔레트 및 아이콘
 const RECORD_COLORS = ['#FF5C5C', '#FF9F43', '#FFD700', '#6BCB77', '#4D96FF', '#9D84FF', '#FF85C0', '#777777'];
 const RECORD_ICONS = [
     'menu_book', 'edit', 'article', 'star', 'favorite', 'emoji_events', 
@@ -24,7 +24,7 @@ const RECORD_ICONS = [
 let selectedItemColor = RECORD_COLORS[0];
 let selectedItemIcon = RECORD_ICONS[0];
 
-// [초기화]
+// 초기화
 if(!state.settings) state.settings = { theme: 'dark', fontSize: 12 };
 const initApp = () => {
     document.body.className = state.settings.theme + '-theme';
@@ -500,12 +500,12 @@ function renderShop() {
     });
 }
 
-// [수정됨] 구매: 기록 보관소 저장X, 오직 골드만 차감
+// [수정됨] 구매: 기록 생성 없이 골드만 차감
 window.buyItem = (id, cost) => {
     if(state.gold >= cost) {
         openConfirmModal("구매 확인", "정말 구매하시겠습니까?", () => { 
             state.gold -= cost; 
-            // state.inventory.push(...) 코드 제거됨
+            // state.inventory.push(...) 제거됨
             DataManager.save(state); 
             updateGlobalUI(); 
             renderShop(); 
@@ -573,16 +573,9 @@ window.startBattle=(id)=>{
     }
     activeQuestId=id;
     sessionSec=0;
+    
+    // 탭 이동 및 UI 갱신
     switchTab('battle');
-    document.getElementById('battle-quest-name').innerText=state.quests[id].name;
-    document.getElementById('battle-earning').innerText="수련 진행 중...";
-    BattleManager.init();
-    timer=setInterval(()=>{
-        sessionSec++;
-        const m=Math.floor(sessionSec/60).toString().padStart(2,'0'),
-              s=(sessionSec%60).toString().padStart(2,'0');
-        document.getElementById('battle-timer').innerText=`00:${m}:${s}`;
-    },1000);
 };
 
 document.getElementById('btn-stop').onclick=()=>{if(!timer)return;clearInterval(timer);timer=null;BattleManager.destroy();const q=state.quests[activeQuestId];const ms=state.skills[q.mainSkillId];state.gold+=sessionSec;if(ms)ms.seconds+=sessionSec;if(q.subSkillId){const ss=state.skills[q.subSkillId];if(ss)ss.seconds+=Math.floor(sessionSec*0.2);}
@@ -592,7 +585,10 @@ document.getElementById('btn-stop').onclick=()=>{if(!timer)return;clearInterval(
         state.inventory.push({id:lid,type:'loot',icon:'redeem',name:'전리품',desc:'수련 보상', folderId:null});
         msg+=' [전리품 획득!]';
     }
-    showToast(msg);sessionSec=0;activeQuestId=null;document.getElementById('battle-quest-name').innerText="-";document.getElementById('battle-timer').innerText="00:00:00";DataManager.save(state);updateGlobalUI();switchTab('quest');
+    showToast(msg);sessionSec=0;activeQuestId=null;DataManager.save(state);updateGlobalUI();switchTab('quest');
+    
+    // UI 대기 모드로 전환
+    updateBattleUI('idle');
 };
 
 window.openCreateShopItemModal=()=>{document.getElementById('modal-create-shop-item').style.display='flex';};
@@ -602,6 +598,7 @@ window.openRestoreSkillMode=()=>{document.getElementById('modal-restore-skill').
 window.restoreSkill=(sid)=>{state.skills[sid].hidden=false;DataManager.save(state);openRestoreSkillMode();renderCharacter();showToast("복구되었습니다.");};
 window.permDeleteSkill=(sid)=>{openConfirmModal("영구 삭제", "정말 삭제하시겠습니까?", ()=>{delete state.skills[sid];DataManager.save(state);openRestoreSkillMode();updateGlobalUI();showToast("삭제되었습니다.");});};
 
+// 탭 전환 및 UI 업데이트 통합
 function switchTab(t){
     document.querySelectorAll('.tab-screen').forEach(e=>e.classList.remove('active'));
     document.getElementById(`tab-${t}`).classList.add('active');
@@ -617,7 +614,57 @@ function switchTab(t){
         updateInvRender();
     }
     if(t==='shop') renderShop();
+    
+    // 전투 탭 진입 시 UI 갱신
+    if (t === 'battle') {
+        if (activeQuestId) {
+            updateBattleUI('battle');
+        } else {
+            updateBattleUI('idle');
+        }
+    }
 }
-document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>switchTab(b.dataset.target));
 
+// 전투/대기 UI 상태 전환 함수
+function updateBattleUI(mode) {
+    const title = document.getElementById('battle-quest-name');
+    const timerText = document.getElementById('battle-timer');
+    const subText = document.getElementById('battle-earning');
+    const btnSelect = document.getElementById('btn-select-quest');
+    const btnStop = document.getElementById('btn-stop');
+
+    // Phaser 모드 전환
+    BattleManager.init(mode); 
+    BattleManager.setMode(mode);
+
+    if (mode === 'battle') {
+        const q = state.quests[activeQuestId];
+        title.innerText = q ? q.name : '알 수 없는 의뢰';
+        timerText.innerText = "00:00:00";
+        subText.innerText = "수련 진행 중...";
+        
+        btnSelect.style.display = 'none';
+        btnStop.style.display = 'flex';
+        
+        if (timer) clearInterval(timer);
+        timer = setInterval(() => {
+            sessionSec++;
+            const m = Math.floor(sessionSec / 60).toString().padStart(2, '0');
+            const s = (sessionSec % 60).toString().padStart(2, '0');
+            timerText.innerText = `00:${m}:${s}`;
+        }, 1000);
+
+    } else {
+        title.innerText = "";
+        timerText.innerText = "휴식 중"; 
+        subText.innerText = "HP와 의욕을 회복하고 있습니다.";
+        
+        btnSelect.style.display = 'flex';
+        btnStop.style.display = 'none';
+        
+        if (timer) { clearInterval(timer); timer = null; }
+    }
+}
+
+document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>switchTab(b.dataset.target));
 initApp();
