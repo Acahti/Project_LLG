@@ -8,8 +8,11 @@ const DEFAULT_STATE = {
     currentJob: "무직",
     unlockedTitles: ["모험가"],
     unlockedJobs: ["무직"],
-    inventory: [], // { id, type, icon, name, desc }
     
+    // [v10.9] 보관함 구조 개선
+    inventory: [], // { id, type, icon, name, desc, folderId }
+    folders: [],   // { id, name, type } (type: 'loot' or 'record')
+
     // 5대 스탯
     cores: {
         STR: { name: "힘 (STR)", level: 0, color: "#FF5C5C" },
@@ -28,7 +31,6 @@ const DEFAULT_STATE = {
         { id: 'item3', name: "주말 휴식권", cost: 8000 }
     ],
     
-    // [v9.0] 설정값 저장
     settings: {
         theme: 'dark',
         fontSize: 10
@@ -43,7 +45,7 @@ export const DataManager = {
         const data = JSON.parse(json);
         const defaults = DEFAULT_STATE.cores;
         
-        // 데이터 마이그레이션 (없는 데이터 복구)
+        // 데이터 마이그레이션
         if (!data.cores) data.cores = {};
         ['STR', 'DEX', 'INT', 'WIS', 'VIT'].forEach(key => {
             if (!data.cores[key]) data.cores[key] = JSON.parse(JSON.stringify(defaults[key]));
@@ -52,11 +54,13 @@ export const DataManager = {
         if(!data.quests) data.quests = {};
         if(!data.shopItems) data.shopItems = DEFAULT_STATE.shopItems;
         if(!data.settings) data.settings = { theme: 'dark', fontSize: 10 };
-        
-        // 인벤토리 ID 보정
+
+        // [v10.9] 폴더 시스템 호환성
+        if(!data.folders) data.folders = [];
         if (data.inventory) {
             data.inventory.forEach((item, idx) => {
                 if (!item.id) item.id = 'inv_' + Date.now() + '_' + idx;
+                // 기존 아이템은 folderId undefined 상태 -> Root로 간주
             });
         }
 
@@ -69,7 +73,6 @@ export const DataManager = {
         localStorage.removeItem(STORAGE_KEY);
         location.reload();
     },
-    // [iOS 대응] 백업 저장
     export: (state) => {
         const str = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
         const node = document.createElement('a');
