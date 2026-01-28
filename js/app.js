@@ -297,7 +297,8 @@ window.startBattle = (id) => {
     switchTab('battle');
 };
 
-// [v12.0] 전투 종료 (통계 업데이트 및 전리품 로직 개선)
+// [v12.1] app.js의 stopBattleAction 함수 수정
+
 window.stopBattleAction = () => {
     if (!timer) return;
     clearInterval(timer); timer = null;
@@ -305,39 +306,44 @@ window.stopBattleAction = () => {
     const q = state.quests[activeQuestId];
     const ms = state.skills[q.mainSkillId];
     
-    // 1. 기본 보상
+    // 1. 기본 보상 지급
     state.gold += sessionSec;
     if (ms) ms.seconds += sessionSec;
-    if (q.subSkillId) { const ss = state.skills[q.subSkillId]; if (ss) ss.seconds += Math.floor(sessionSec * 0.2); }
+    if (q.subSkillId) { 
+        const ss = state.skills[q.subSkillId]; 
+        if (ss) ss.seconds += Math.floor(sessionSec * 0.2); 
+    }
     
     // 2. 통계 업데이트
-    state.statistics.quest.completed++;
+    // [중요 수정] 수련 시간이 60초(1분) 이상일 때만 의뢰 완료 횟수(completed) 증가
+    if (sessionSec >= 60) {
+        state.statistics.quest.completed++;
+    } else {
+        window.showToast("의뢰 완료 인정: 최소 1분 이상 수련이 필요합니다.");
+    }
+    
     state.statistics.battle.totalSeconds += sessionSec;
 
     let msg = `완료! (+${sessionSec}G)`;
 
-    // 3. 전리품 드랍 (데이터 파일의 확률 테이블 사용)
+    // 3. 전리품 드랍 체크 (기존 로직 유지)
     LOOT_TABLE.forEach(loot => {
-        // 조건 확인
         let conditionMet = true;
-        if (loot.condition) {
-            if (loot.condition.type === 'min_time' && sessionSec < loot.condition.value) conditionMet = false;
-        }
-
-        // 확률 확인
+        if (loot.condition && loot.condition.type === 'min_time' && sessionSec < loot.condition.value) conditionMet = false;
         if (conditionMet && Math.random() < loot.dropRate) {
             const lootId = 'loot_' + Date.now() + Math.random();
-            state.inventory.push({
-                id: lootId,
-                type: 'loot',
-                icon: loot.icon, // Google Material Icons text name
-                name: loot.name,
-                desc: loot.desc,
-                folderId: null
-            });
+            state.inventory.push({ id: lootId, type: 'loot', icon: loot.icon, name: loot.name, desc: loot.desc, folderId: null });
             msg += ` [${loot.name} 획득!]`;
         }
     });
+
+    showToast(msg);
+    sessionSec = 0; activeQuestId = null;
+    
+    DataManager.save(state); 
+    updateGlobalUI(); 
+    updateBattleUI('idle');
+};
 
     showToast(msg);
     sessionSec = 0; activeQuestId = null;
