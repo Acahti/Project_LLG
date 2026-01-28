@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>PROJECT: LLG v11.0</title>
+    <title>PROJECT: LLG v11.1</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="css/style.css?v=11.0">
+    <link rel="stylesheet" href="css/style.css?v=11.1">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
 </head>
@@ -94,7 +94,6 @@
                     <span id="inv-current-path" class="inv-path">전리품</span>
                     <div style="width:40px;"></div>
                 </div>
-
                 <div class="chip-group" id="inv-action-bar"></div>
                 <div id="inventory-grid" class="inv-grid"></div>
             </div>
@@ -199,44 +198,53 @@
 
     <div id="modal-item-detail" class="modal">
         <div class="modal-content">
-            <div style="text-align:center; margin-bottom:10px;">
-                <span id="detail-item-icon" style="font-size:3em;">📦</span>
-            </div>
-            <h3 id="detail-item-name" style="text-align:center; margin-bottom:5px;">아이템 이름</h3>
-            <p id="detail-item-desc" class="modal-desc" style="margin-bottom:15px;">설명</p>
-            
-            <div id="detail-actions">
-                <label class="input-label">이동할 폴더 선택</label>
-                <div style="display:flex; gap:5px;">
-                    <select id="detail-move-select" class="input-dark"></select>
-                    <button onclick="moveItemAction()" class="btn-sm" style="width:auto;">이동</button>
+            <div class="modal-detail-container">
+                <div class="detail-header">
+                    <div class="detail-icon-circle">
+                        <span id="detail-item-icon" class="material-icons-round" style="font-size:32px;">help</span>
+                    </div>
+                    <h3 id="detail-item-name" style="margin:0; font-size:1.3em;">아이템 이름</h3>
+                    <div id="detail-item-type" style="font-size:0.8em; color:#666; margin-top:4px;">기록물</div>
                 </div>
-                
-                <div id="record-only-actions" style="margin-top:15px;">
-                    <button onclick="openEditItemMode()" class="btn-secondary">✏️ 내용 수정</button>
-                    <button onclick="deleteItemAction()" class="btn-danger" style="margin-top:5px;">🗑️ 삭제</button>
+
+                <div id="detail-item-desc" class="detail-body">
+                    내용이 여기에 표시됩니다.
+                </div>
+
+                <div class="detail-footer">
+                    <div class="action-row" style="background:rgba(255,255,255,0.05); padding:5px; border-radius:4px;">
+                        <span style="font-size:0.8em; color:#888; white-space:nowrap;">이동:</span>
+                        <select id="detail-move-select" class="mini-select"></select>
+                        <button onclick="moveItemAction()" class="btn-sm" style="width:auto; height:30px; margin:0;">확인</button>
+                    </div>
+
+                    <div class="action-row">
+                        <div id="record-only-actions" style="display:flex; gap:5px; flex:1;">
+                            <button onclick="openEditItemMode()" class="btn-sm btn-secondary" style="flex:1; margin:0;">
+                                <span class="material-icons-round" style="font-size:14px;">edit</span> 수정
+                            </button>
+                            <button onclick="deleteItemAction()" class="btn-sm btn-danger" style="flex:1; margin:0;">
+                                <span class="material-icons-round" style="font-size:14px;">delete</span> 삭제
+                            </button>
+                        </div>
+                        <button onclick="closeModal('modal-item-detail')" class="btn-sm" style="flex:0.6; margin:0; background:#444;">닫기</button>
+                    </div>
                 </div>
             </div>
-            <button onclick="closeModal('modal-item-detail')" class="btn-text">닫기</button>
         </div>
     </div>
     
     <div id="modal-create-item" class="modal">
         <div class="modal-content">
             <h3 style="margin-bottom:15px;">기록 작성</h3>
-            
             <label class="input-label">1. 이름</label>
             <input type="text" id="new-item-name" class="input-dark" placeholder="기록의 제목">
-            
             <label class="input-label">2. 배경 색상</label>
             <div id="new-item-color-picker" class="color-picker-grid"></div>
-
             <label class="input-label">3. 아이콘 선택</label>
             <div id="new-item-icon-picker" class="icon-select-grid"></div>
-            
             <label class="input-label" style="margin-top:15px;">설명 (선택)</label>
             <input type="text" id="new-item-desc" class="input-dark" placeholder="간단한 메모">
-
             <button onclick="createItemAction()" class="btn-primary" style="margin-top:20px;">
                 <span class="material-icons-round">save</span> 저장하기
             </button>
