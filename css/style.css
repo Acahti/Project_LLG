@@ -1,4 +1,4 @@
-/* [v11.0] 폰트 로드: 둥근모 꼴 (레트로 RPG 최적화) */
+/* [v11.0] 레트로 RPG 감성 폰트: 둥근모 */
 @import url('https://cdn.jsdelivr.net/gh/dunggeunmo/dunggeunmo/dunggeunmo.css');
 
 :root {
@@ -9,7 +9,7 @@
     --btn-sec-text: #aaa;
     --safe-top: env(safe-area-inset-top, 20px);
     --safe-bottom: env(safe-area-inset-bottom, 20px);
-    /* [v11.0] 폰트 크기 조정 및 폰트 변경 */
+    /* [v11.0] 폰트 크기 및 줄간격 최적화 */
     --base-font: 12px; 
 }
 
@@ -26,7 +26,7 @@ body.light-theme {
 body {
     background: var(--bg-dark); color: var(--text);
     /* [v11.0] 폰트 적용 */
-    font-family: 'DungGeunMo', sans-serif; 
+    font-family: 'DungGeunMo', sans-serif;
     margin: 0; padding: 0;
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
     width: 100%; height: 100%; overflow: hidden;
@@ -34,11 +34,11 @@ body {
     display: flex; flex-direction: column;
     user-select: none; font-size: var(--base-font);
     transition: background 0.3s, color 0.3s;
-    line-height: 1.4; /* 가독성 확보 */
+    line-height: 1.4;
 }
 
-/* 기존 공통 스타일 유지 (flex-center, header, nav 등...) */
 .flex-center { display: flex; align-items: center; justify-content: center; gap: 5px; }
+
 main { flex: 1; overflow-y: auto; padding: 15px; padding-bottom: 80px; -webkit-overflow-scrolling: touch; }
 
 header { 
@@ -51,7 +51,7 @@ header {
 .header-right { display: flex; flex-direction: row; align-items: center; gap: 15px; }
 
 .header-job-title { font-size: 0.8em; color: var(--accent); }
-.header-job-name { font-size: 1.2em; color: var(--text); } /* Bold 제거 (둥근모는 기본이 굵음) */
+.header-job-name { font-size: 1.2em; color: var(--text); }
 .icon-btn { background: none; border: none; color: #888; cursor: pointer; padding: 5px; width: auto; border-bottom: none; margin: 0; display:flex; align-items:center; }
 
 nav { 
@@ -70,22 +70,20 @@ nav {
 .card { background: var(--bg-panel); padding: 15px; margin-bottom: 15px; border: 2px solid var(--border); border-radius: 8px; box-shadow: 4px 4px 0 rgba(0,0,0,0.1); }
 .header-card { text-align: center; color: #aaa; display: flex; justify-content: space-between; align-items: center; }
 
-/* 칩 스타일 */
 .chip-group { display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap; }
 .chip { padding: 8px 12px; background: rgba(0,0,0,0.1); border: 1px solid var(--border); border-radius: 4px; cursor: pointer; font-size: 0.9em; }
 .chip.active { background: var(--accent); color: #fff; border-color: transparent; }
 
-/* 차트 및 스탯 */
 .chart-container { background: rgba(0,0,0,0.05); border: 2px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 15px; text-align: center; position: relative; }
 #stat-radar { max-width: 100%; height: auto; }
 .chart-level { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2em; color: var(--gold); text-shadow: 2px 2px 0 rgba(0,0,0,0.5); pointer-events: none; }
+
 .stat-item { background: var(--bg-panel); border: 1px solid var(--border); margin-bottom: 5px; border-radius: 4px; }
 .stat-header { padding: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: rgba(128,128,128,0.1); }
 .stat-detail { padding: 10px; border-top: 1px solid var(--border); background: rgba(0,0,0,0.02); }
 .mastery-header { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; margin-bottom: 5px; padding-bottom: 4px; border-bottom: 1px dashed var(--border); }
 .skill-row { padding: 8px 10px; color: var(--text); font-size: 1em; margin-bottom: 3px; display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); border-radius: 4px; }
 
-/* 퀘스트 카드 */
 .quest-card { display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--accent); }
 .quest-info { flex: 1; }
 .quest-title { font-size: 1.1em; margin-bottom: 4px; color: var(--text); }
@@ -94,7 +92,7 @@ nav {
 .tag-main { background: rgba(77, 150, 255, 0.2); color: var(--accent); }
 .tag-sub { background: rgba(255, 215, 0, 0.2); color: var(--gold); }
 
-/* 버튼 */
+/* 버튼 스타일 (높이 및 정렬) */
 button { 
     width: 100%; padding: 14px; border: none; 
     background: var(--accent); color: #fff; 
@@ -105,6 +103,7 @@ button {
     gap: 6px; line-height: 1;
 }
 button:active { transform: translateY(2px); border-bottom-width: 2px; }
+
 .btn-sm { width: auto; padding: 8px 12px; font-size: 0.9em; border-bottom-width: 2px; margin: 0; height: 36px; }
 .btn-text { background: transparent; border: none; color: #888; margin-top: 10px; border-bottom: none; font-size: 1em; }
 .btn-danger { background: var(--danger); }
@@ -113,9 +112,10 @@ button:active { transform: translateY(2px); border-bottom-width: 2px; }
 .btn-edit:hover { color: var(--accent); }
 .btn-secondary { background: var(--btn-sec-bg); color: var(--btn-sec-text); border-bottom-color: rgba(0,0,0,0.1); }
 
-/* 모달 */
 .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; justify-content: center; align-items: center; }
 .modal-content { background: var(--bg-panel); border: 2px solid var(--accent); padding: 25px; width: 90%; max-width: 360px; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); display: flex; flex-direction: column; }
+#modal-confirm { z-index: 9999; }
+
 .modal-desc { font-size: 0.9em; color: #888; margin-bottom: 20px; text-align: center; line-height: 1.5; }
 .input-label { font-size: 0.9em; color: var(--accent); margin-bottom: 8px; margin-top: 15px; display: block; }
 .input-dark { width: 100%; padding: 12px; background: rgba(0,0,0,0.1); border: 1px solid var(--border); color: var(--text); font-family: inherit; font-size: 1em; border-radius: 4px; }
@@ -129,10 +129,15 @@ button:active { transform: translateY(2px); border-bottom-width: 2px; }
 .list-item { padding: 12px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 1.1em; }
 .list-item:hover { background: rgba(255,255,255,0.05); }
 .list-item.active { color: var(--gold); background: rgba(255, 215, 0, 0.1); border-left: 4px solid var(--gold); }
+
 .setting-item { padding: 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 1.1em; }
+.setting-item:last-child { border-bottom: none; }
 
 #toast-container { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); z-index: 9000; width: 90%; max-width: 320px; pointer-events: none; }
 .toast { background: rgba(0, 0, 0, 0.9); color: #fff; padding: 12px 20px; border-radius: 4px; margin-top: 10px; text-align: center; font-size: 1em; border: 1px solid #444; box-shadow: 0 4px 15px rgba(0,0,0,0.5); animation: slideUp 0.4s forwards; }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.toast.hide { animation: fadeOut 0.4s forwards; }
+@keyframes fadeOut { to { opacity: 0; transform: translateY(-10px); } }
 
 @media (min-width: 768px) {
     body { max-width: 420px; height: 90vh; margin: 5vh auto; border: 8px solid #333; border-radius: 20px; box-shadow: 0 0 50px rgba(0,0,0,0.5); position: relative; }
@@ -141,7 +146,7 @@ button:active { transform: translateY(2px); border-bottom-width: 2px; }
 }
 
 /* ========================================= */
-/* [v11.0] 보관함(Inventory) 스타일 리뉴얼 */
+/* [v11.0] 보관함(Inventory) 전용 스타일 */
 /* ========================================= */
 .inv-portal { display: flex; flex-direction: column; gap: 15px; height: 100%; justify-content: center; }
 .portal-btn { 
@@ -157,14 +162,14 @@ button:active { transform: translateY(2px); border-bottom-width: 2px; }
 .inv-nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
 .inv-path { color: var(--text); text-align: center; flex:1; font-size: 1.1em; }
 
-/* 그리드 레이아웃: 높이 확보를 위해 gap과 비율 조정 */
+/* [v11.0] 아이템 그리드 (4열로 변경하여 공간 활용) */
 .inv-grid { 
     display: grid; 
-    grid-template-columns: repeat(4, 1fr); /* 4열로 변경하여 공간 확보 */
+    grid-template-columns: repeat(4, 1fr); 
     gap: 15px 10px; 
 }
 
-/* 폴더 아이템 스타일 */
+/* 폴더 아이템 */
 .folder-item { 
     display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer;
 }
@@ -180,26 +185,27 @@ button:active { transform: translateY(2px); border-bottom-width: 2px; }
 .folder-badge { position: absolute; top: -5px; right: -5px; font-size: 0.8em; background: var(--gold); color: #000; padding: 2px 5px; border-radius: 4px; box-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
 .folder-name { font-size: 0.9em; text-align: center; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--gold); }
 
-/* 일반 아이템(기록/전리품) 컨테이너 */
+/* 일반 아이템 컨테이너 (아이콘 상자 + 이름) */
 .inv-item-container {
     display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer;
 }
 
-/* 아이콘을 감싸는 도형 */
+/* 아이콘을 감싸는 도형 프레임 */
 .inv-icon-frame {
     width: 100%; aspect-ratio: 1/1;
     display: flex; align-items: center; justify-content: center;
     box-shadow: 3px 3px 0 rgba(0,0,0,0.2);
     border: 1px solid rgba(255,255,255,0.1);
 }
+
 /* 기록물: 둥근 사각형 */
 .inv-icon-frame.type-record {
     border-radius: 12px;
 }
-/* 전리품: 원형 (또는 추후 다른 도형) */
+/* 전리품: 원형 */
 .inv-icon-frame.type-loot {
     border-radius: 50%;
-    background: #333; /* 기본 전리품 배경 */
+    background: #2a2a2a; /* 전리품 기본 배경 */
     border: 2px solid #555;
 }
 
@@ -214,7 +220,7 @@ button:active { transform: translateY(2px); border-bottom-width: 2px; }
     color: #ccc;
 }
 
-/* 생성 모달의 선택기 스타일 */
+/* [v11.0] 아이템 생성기 (색상/아이콘 선택) */
 .color-picker-grid { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; }
 .color-option { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
 .color-option.selected { border-color: #fff; transform: scale(1.1); box-shadow: 0 0 10px rgba(255,255,255,0.5); }
