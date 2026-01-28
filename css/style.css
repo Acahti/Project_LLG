@@ -290,3 +290,35 @@ button:active { transform: translateY(2px); border-bottom-width: 2px; }
     height: 70vh; 
     max-height: 600px;
 }
+
+
+/* [v12.2] 활동 로그 섹션 스타일 */
+.log-separator {
+    display: flex;
+    align-items: center;
+    margin: 20px 0 10px 0;
+    color: #555;
+    font-size: 0.8em;
+}
+.log-separator::before, .log-separator::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: #333;
+    margin: 0 10px;
+}
+
+.log-item {
+    border: 1px dashed var(--accent) !important;
+    background: rgba(77, 150, 255, 0.05) !important;
+    margin-top: 10px;
+}
+.log-item:active {
+    background: rgba(77, 150, 255, 0.15) !important;
+}
+
+/* 통계 모달 내 강조 수치 */
+#stats-log-list .list-item span:last-child {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.8em;
+}
