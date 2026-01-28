@@ -6,7 +6,7 @@ const DEFAULT_STATE = {
     totalLevel: 0,
     currentTitle: "없음",
     currentJob: "무직",
-    unlockedTitles: ["없음", "신입"],
+    unlockedTitles: ["없음"],
     unlockedJobs: ["무직"],
     
     inventory: [], 
