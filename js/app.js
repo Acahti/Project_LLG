@@ -5,6 +5,7 @@ let state = DataManager.load();
 let timer = null, sessionSec = 0, activeQuestId = null;
 let selectedCoreForCreate = null, editingSkillId = null, editingMasteryId = null, editingItemId = null;
 
+// [v10.9] 보관함 상태 관리 변수
 let invState = {
     view: 'portal', 
     category: null, 
@@ -12,6 +13,7 @@ let invState = {
 };
 let editingFolderId = null; 
 
+// [v11.0] 기록용 색상 팔레트 및 아이콘 리스트
 const RECORD_COLORS = ['#FF5C5C', '#FF9F43', '#FFD700', '#6BCB77', '#4D96FF', '#9D84FF', '#FF85C0', '#777777'];
 const RECORD_ICONS = [
     'menu_book', 'edit', 'article', 'star', 'favorite', 'emoji_events', 
@@ -22,6 +24,7 @@ const RECORD_ICONS = [
 let selectedItemColor = RECORD_COLORS[0];
 let selectedItemIcon = RECORD_ICONS[0];
 
+// [초기화]
 if(!state.settings) state.settings = { theme: 'dark', fontSize: 12 };
 const initApp = () => {
     document.body.className = state.settings.theme + '-theme';
@@ -497,22 +500,20 @@ function renderShop() {
     });
 }
 
-// [v11.2] 구매 로직 변경: Loot -> Record, 색상 Gold
+// [수정됨] 구매: 기록 보관소 저장X, 오직 골드만 차감
 window.buyItem = (id, cost) => {
-    if(state.gold >= cost) openConfirmModal("구매 확인", "정말 구매하시겠습니까?", () => { 
-        state.gold -= cost; 
-        state.inventory.push({
-            id: 'buy_'+Date.now(),
-            type: 'record',  // 변경됨: 기록으로 저장
-            name: state.shopItems.find(x=>x.id===id).name,
-            icon: 'shopping_bag',
-            color: '#FFD700', // 변경됨: 금색
-            desc: '상점에서 구매함',
-            folderId: null
+    if(state.gold >= cost) {
+        openConfirmModal("구매 확인", "정말 구매하시겠습니까?", () => { 
+            state.gold -= cost; 
+            // state.inventory.push(...) 코드 제거됨
+            DataManager.save(state); 
+            updateGlobalUI(); 
+            renderShop(); 
+            showToast("구매가 완료되었습니다."); 
         });
-        DataManager.save(state); updateGlobalUI(); renderShop(); showToast("구매 완료! 기록 보관소를 확인하세요."); 
-    });
-    else showToast("골드가 부족합니다.");
+    } else {
+        showToast("골드가 부족합니다.");
+    }
 };
 
 window.openEditSkillModal = (sid) => {
@@ -565,7 +566,25 @@ window.createQuestAction=()=>{const n=document.getElementById('new-quest-name').
 window.confirmDeleteQuest=(id)=>{openConfirmModal("의뢰 삭제", "정말 삭제하시겠습니까?", ()=>{delete state.quests[id];DataManager.save(state);renderQuest();showToast("삭제되었습니다.");});};
 window.confirmDeleteShopItem=(id)=>{openConfirmModal("상품 삭제", "정말 삭제하시겠습니까?", ()=>{state.shopItems=state.shopItems.filter(i=>i.id!==id);DataManager.save(state);renderShop();showToast("삭제되었습니다.");});};
 
-window.startBattle=(id)=>{activeQuestId=id;sessionSec=0;switchTab('battle');document.getElementById('battle-quest-name').innerText=state.quests[id].name;document.getElementById('battle-earning').innerText="수련 진행 중...";BattleManager.init();timer=setInterval(()=>{sessionSec++;const m=Math.floor(sessionSec/60).toString().padStart(2,'0'),s=(sessionSec%60).toString().padStart(2,'0');document.getElementById('battle-timer').innerText=`00:${m}:${s}`;},1000);};
+// [수정됨] 전투 시작: 중복 실행 방지
+window.startBattle=(id)=>{
+    if (activeQuestId || timer) { 
+        return showToast("이미 진행 중인 의뢰가 있습니다.");
+    }
+    activeQuestId=id;
+    sessionSec=0;
+    switchTab('battle');
+    document.getElementById('battle-quest-name').innerText=state.quests[id].name;
+    document.getElementById('battle-earning').innerText="수련 진행 중...";
+    BattleManager.init();
+    timer=setInterval(()=>{
+        sessionSec++;
+        const m=Math.floor(sessionSec/60).toString().padStart(2,'0'),
+              s=(sessionSec%60).toString().padStart(2,'0');
+        document.getElementById('battle-timer').innerText=`00:${m}:${s}`;
+    },1000);
+};
+
 document.getElementById('btn-stop').onclick=()=>{if(!timer)return;clearInterval(timer);timer=null;BattleManager.destroy();const q=state.quests[activeQuestId];const ms=state.skills[q.mainSkillId];state.gold+=sessionSec;if(ms)ms.seconds+=sessionSec;if(q.subSkillId){const ss=state.skills[q.subSkillId];if(ss)ss.seconds+=Math.floor(sessionSec*0.2);}
     let msg=`완료! (+${sessionSec}G)`;
     if(sessionSec>60&&Math.random()>0.7){
