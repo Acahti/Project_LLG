@@ -9,8 +9,8 @@ const DEFAULT_STATE = {
     unlockedTitles: ["모험가"],
     unlockedJobs: ["무직"],
     
-    // [v10.9] 보관함 구조 개선
-    inventory: [], // { id, type, icon, name, desc, folderId }
+    // [v11.0] 보관함 구조 개선 (color 속성 추가)
+    inventory: [], // { id, type, icon, name, desc, folderId, color }
     folders: [],   // { id, name, type } (type: 'loot' or 'record')
 
     // 5대 스탯
@@ -33,7 +33,7 @@ const DEFAULT_STATE = {
     
     settings: {
         theme: 'dark',
-        fontSize: 10
+        fontSize: 12 // [v11.0] 둥근모 폰트 최적 사이즈
     }
 };
 
@@ -53,14 +53,12 @@ export const DataManager = {
 
         if(!data.quests) data.quests = {};
         if(!data.shopItems) data.shopItems = DEFAULT_STATE.shopItems;
-        if(!data.settings) data.settings = { theme: 'dark', fontSize: 10 };
+        if(!data.settings) data.settings = { theme: 'dark', fontSize: 12 };
 
-        // [v10.9] 폴더 시스템 호환성
         if(!data.folders) data.folders = [];
         if (data.inventory) {
             data.inventory.forEach((item, idx) => {
                 if (!item.id) item.id = 'inv_' + Date.now() + '_' + idx;
-                // 기존 아이템은 folderId undefined 상태 -> Root로 간주
             });
         }
 
