@@ -1,67 +1,120 @@
-let game = null;
+// [v11.3] Battle & Idle Visual Manager
+export const BattleManager = {
+    game: null,
+    scene: null,
+    mode: 'idle', // 'idle' or 'battle'
 
-class BattleScene extends Phaser.Scene {
-    constructor() { super({ key: 'BattleScene' }); }
-
-    create() {
-        // 1. 배경 (우주 효과)
-        this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x000000).setOrigin(0);
-        
-        this.stars = this.add.group();
-        for (let i = 0; i < 100; i++) {
-            let star = this.add.rectangle(
-                Phaser.Math.Between(0, this.scale.width),
-                Phaser.Math.Between(0, this.scale.height),
-                2, 2, 0xffffff
-            );
-            this.stars.add(star);
+    init: (mode = 'idle') => {
+        if (BattleManager.game) {
+            BattleManager.setMode(mode);
+            return;
         }
 
-        // 2. 캐릭터 (중앙에서 회전)
-        this.player = this.add.rectangle(this.scale.width/2, this.scale.height/2, 40, 40, 0x4D96FF);
-        
-        // 3. 파티클 효과 (궤적)
-        this.particles = this.add.particles(0, 0, 'flare', {
-            speed: 100,
-            scale: { start: 1, end: 0 },
-            blendMode: 'ADD'
-        });
-
-        this.add.text(10, 10, "SYSTEM: TRAINING ACTIVE", { fontSize: '10px', color: '#00ff00' });
-    }
-
-    update() {
-        // 캐릭터 회전
-        this.player.rotation += 0.05;
-
-        // 별 흐르는 효과
-        this.stars.children.iterate((star) => {
-            star.y += 2;
-            if (star.y > this.scale.height) {
-                star.y = 0;
-                star.x = Phaser.Math.Between(0, this.scale.width);
-            }
-        });
-    }
-}
-
-export const BattleManager = {
-    init: () => {
-        if (game) return;
         const config = {
             type: Phaser.AUTO,
             parent: 'phaser-root',
-            width: window.innerWidth > 400 ? 360 : window.innerWidth - 40,
-            height: 300,
-            backgroundColor: '#000',
-            scene: BattleScene
+            width: 320,
+            height: 240, // 레트로 비율
+            backgroundColor: '#121214',
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            }
         };
-        game = new Phaser.Game(config);
+
+        BattleManager.game = new Phaser.Game(config);
+        BattleManager.mode = mode;
     },
+
+    setMode: (mode) => {
+        BattleManager.mode = mode;
+        if (BattleManager.scene) {
+            BattleManager.scene.changeMode(mode);
+        }
+    },
+
     destroy: () => {
-        if (game) {
-            game.destroy(true);
-            game = null;
+        // 게임 인스턴스는 유지하되 모드만 변경하는 것이 성능상 좋음
+        // 여기서는 완전 종료가 필요하다면 사용
+        if (BattleManager.game) {
+            BattleManager.game.destroy(true);
+            BattleManager.game = null;
         }
     }
 };
+
+function preload() {}
+
+function create() {
+    BattleManager.scene = this;
+    this.mode = BattleManager.mode;
+
+    // 1. 모닥불 (Idle) 그룹
+    this.idleGroup = this.add.group();
+    
+    // 장작 그리기
+    const graphics = this.add.graphics();
+    graphics.fillStyle(0x8B4513, 1); // 갈색
+    graphics.fillRect(140, 180, 40, 10);
+    graphics.fillRect(155, 170, 10, 30);
+    graphics.rotation = 0.1;
+    this.idleGroup.add(graphics);
+
+    // 불꽃 파티클
+    const particles = this.add.particles(0, 0, 'flare', {
+        x: 160,
+        y: 180,
+        speed: { min: 20, max: 50 },
+        angle: { min: 260, max: 280 },
+        scale: { start: 0.5, end: 0 },
+        blendMode: 'ADD',
+        lifespan: 1000,
+        frequency: 100,
+        quantity: 2
+    });
+    
+    // 파티클 텍스처를 코드로 생성 (원형)
+    const texture = this.textures.createCanvas('flare', 10, 10);
+    const context = texture.getSourceImage().getContext('2d');
+    context.fillStyle = '#FF5C5C';
+    context.beginPath();
+    context.arc(5, 5, 5, 0, Math.PI * 2);
+    context.fill();
+    texture.refresh();
+
+    this.fireEmitter = particles;
+    this.idleGroup.add(particles);
+
+    // 2. 전투 (Battle) 그룹
+    this.battleGroup = this.add.group();
+    const monster = this.add.text(160, 120, '⚔️', { fontSize: '40px' }).setOrigin(0.5);
+    this.battleGroup.add(monster);
+    this.battleGroup.setVisible(false);
+
+    // 초기 모드 설정
+    this.changeMode = (m) => {
+        this.mode = m;
+        if (m === 'idle') {
+            this.cameras.main.setBackgroundColor('#121214'); // 어두운 배경
+            this.idleGroup.setVisible(true);
+            this.battleGroup.setVisible(false);
+            this.fireEmitter.start();
+        } else {
+            this.cameras.main.setBackgroundColor('#2a1a1a'); // 붉은 기운 배경
+            this.idleGroup.setVisible(false);
+            this.battleGroup.setVisible(true);
+            this.fireEmitter.stop(); // 불 끄기
+        }
+    };
+
+    // 최초 실행
+    this.changeMode(this.mode);
+}
+
+function update() {
+    if (this.mode === 'battle') {
+        // 전투 중 흔들림 효과 등
+        this.battleGroup.getChildren()[0].rotation = Math.sin(this.time.now / 200) * 0.2;
+    }
+}
