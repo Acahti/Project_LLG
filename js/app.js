@@ -237,7 +237,6 @@ function updateInvRender() {
     const g = document.getElementById('inventory-grid');
     g.innerHTML = '';
     
-    // 1. Folders
     if (!invState.folderId) {
         const folders = state.folders.filter(f => f.type === invState.category);
         folders.forEach(f => {
@@ -253,7 +252,6 @@ function updateInvRender() {
         });
     }
     
-    // 2. Items
     const items = state.inventory.filter(i => {
         const isRecord = i.type === 'record';
         const targetCat = invState.category === 'record';
@@ -505,7 +503,6 @@ window.buyItem = (id, cost) => {
     if(state.gold >= cost) {
         openConfirmModal("구매 확인", "정말 구매하시겠습니까?", () => { 
             state.gold -= cost; 
-            // state.inventory.push(...) 제거됨
             DataManager.save(state); 
             updateGlobalUI(); 
             renderShop(); 
@@ -599,7 +596,8 @@ window.restoreSkill=(sid)=>{state.skills[sid].hidden=false;DataManager.save(stat
 window.permDeleteSkill=(sid)=>{openConfirmModal("영구 삭제", "정말 삭제하시겠습니까?", ()=>{delete state.skills[sid];DataManager.save(state);openRestoreSkillMode();updateGlobalUI();showToast("삭제되었습니다.");});};
 
 // 탭 전환 및 UI 업데이트 통합
-function switchTab(t){
+// [수정됨] window 객체에 할당 (HTML onclick에서 접근 가능하도록)
+const switchTab = (t) => {
     document.querySelectorAll('.tab-screen').forEach(e=>e.classList.remove('active'));
     document.getElementById(`tab-${t}`).classList.add('active');
     document.querySelectorAll('.nav-btn').forEach(e=>e.classList.remove('active'));
@@ -623,7 +621,8 @@ function switchTab(t){
             updateBattleUI('idle');
         }
     }
-}
+};
+window.switchTab = switchTab; // window에 할당
 
 // 전투/대기 UI 상태 전환 함수
 function updateBattleUI(mode) {
