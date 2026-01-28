@@ -1,5 +1,7 @@
 import { DataManager } from './data.js';
 import { BattleManager } from './battle.js';
+import { AchievementManager } from './achievement.js'; // [v12.0] 업적 매니저 추가
+import { LOOT_TABLE } from './game_data.js'; // [v12.0] 전리품 테이블 추가
 
 let state = DataManager.load();
 let timer = null, sessionSec = 0, activeQuestId = null;
@@ -108,7 +110,6 @@ function updateGlobalUI() {
     for(let s in state.skills) state.skills[s].level = Math.floor(state.skills[s].seconds/3600);
     for(let m in state.masteries) state.masteries[m].level = 0;
     for(let c in state.cores) state.cores[c].level = 0;
-    
     for(let s in state.skills) {
         const sk = state.skills[s]; if(sk.hidden || !sk.mastery) continue;
         const ma = state.masteries[sk.mastery]; if(!ma) continue;
@@ -120,14 +121,17 @@ function updateGlobalUI() {
     document.getElementById('header-job-title').innerText = `<${state.currentTitle}>`;
     document.getElementById('header-job-name').innerText = state.currentJob;
     document.getElementById('chart-total-level').innerText = `Lv.${tl}`;
-    checkAchievements(); drawRadarChart();
+    
+    // [v12.0] 업적 체크 (UI 갱신될 때마다 스탯 등 조건 확인할 수 있도록)
+    AchievementManager.checkAll(state, window.showToast);
+    
+    drawRadarChart();
 }
 
 function checkAchievements() {
-    let u = false;
-    if(state.cores.STR.level >= 10 && !state.unlockedJobs.includes("전사")) { state.unlockedJobs.push("전사"); showToast("직업 해금: [전사]"); u=true; }
-    if(state.totalLevel >= 50 && !state.unlockedTitles.includes("중수")) { state.unlockedTitles.push("중수"); showToast("칭호 획득: [중수]"); u=true; }
-    if(u) DataManager.save(state);
+    // [v12.0] 이 함수는 이제 AchievementManager.checkAll 로 대체되었지만
+    // 하위 호환을 위해 비워두거나 제거해도 됩니다.
+    // AchievementManager.checkAll(state, window.showToast);
 }
 
 function renderCharacter() {
@@ -209,6 +213,7 @@ function updateInvRender() {
     });
 }
 
+// ... (모달, 수정, 삭제 관련 코드는 기존과 동일하므로 생략 없이 유지)
 window.openItemDetailModal = (id) => { editingItemId = id; const item = state.inventory.find(i => i.id === id); document.getElementById('detail-item-icon').innerText = item.icon; document.getElementById('detail-item-icon').style.color = item.type === 'record' ? 'var(--accent)' : 'var(--gold)'; document.getElementById('detail-item-name').innerText = item.name; document.getElementById('detail-item-type').innerText = item.type === 'record' ? '기록물' : '전리품'; document.getElementById('detail-item-desc').innerText = item.desc || '(내용 없음)'; const select = document.getElementById('detail-move-select'); select.innerHTML = '<option value="">(최상위)</option>'; const folders = state.folders.filter(f => f.type === invState.category); folders.forEach(f => { const selected = item.folderId === f.id ? 'selected' : ''; select.innerHTML += `<option value="${f.id}" ${selected}>${f.name}</option>`; }); const isRecord = item.type === 'record'; const actionGroup = document.getElementById('record-only-actions'); actionGroup.style.display = isRecord ? 'flex' : 'none'; document.getElementById('modal-item-detail').style.display = 'flex'; };
 window.openCreateItemModal = () => { editingItemId = null; document.querySelector('#modal-create-item h3').innerText = "새로운 기록"; document.getElementById('new-item-name').value = ''; document.getElementById('new-item-desc').value = ''; const palette = document.getElementById('new-item-color-picker'); palette.innerHTML = ''; selectedItemColor = RECORD_COLORS[0]; RECORD_COLORS.forEach(c => { const div = document.createElement('div'); div.className = `color-option ${c===selectedItemColor?'selected':''}`; div.style.backgroundColor = c; div.onclick = () => { selectedItemColor = c; document.querySelectorAll('.color-option').forEach(e => e.classList.remove('selected')); div.classList.add('selected'); }; palette.appendChild(div); }); const grid = document.getElementById('new-item-icon-picker'); grid.innerHTML = ''; selectedItemIcon = RECORD_ICONS[0]; RECORD_ICONS.forEach(ic => { const div = document.createElement('div'); div.className = `icon-option ${ic===selectedItemIcon?'selected':''}`; div.innerHTML = `<span class="material-icons-round">${ic}</span>`; div.onclick = () => { selectedItemIcon = ic; document.querySelectorAll('.icon-option').forEach(e => e.classList.remove('selected')); div.classList.add('selected'); }; grid.appendChild(div); }); document.getElementById('modal-create-item').style.display='flex'; };
 window.openEditItemMode = () => { closeModal('modal-item-detail'); const i = state.inventory.find(x => x.id === editingItemId); document.querySelector('#modal-create-item h3').innerText = "기록 수정"; document.getElementById('new-item-name').value = i.name; document.getElementById('new-item-desc').value = i.desc; selectedItemColor = i.color || RECORD_COLORS[0]; const palette = document.getElementById('new-item-color-picker'); palette.innerHTML = ''; RECORD_COLORS.forEach(c => { const div = document.createElement('div'); div.className = `color-option ${c===selectedItemColor?'selected':''}`; div.style.backgroundColor = c; div.onclick = () => { selectedItemColor = c; renderPaletteSelection(); }; palette.appendChild(div); }); function renderPaletteSelection(){ document.querySelectorAll('.color-option').forEach(e => { e.classList.toggle('selected', e.style.backgroundColor === selectedItemColor || e.style.backgroundColor.replace(/\s/g, '') === 'rgb('+hexToRgb(selectedItemColor)+')'); }); } selectedItemIcon = i.icon || RECORD_ICONS[0]; const grid = document.getElementById('new-item-icon-picker'); grid.innerHTML = ''; RECORD_ICONS.forEach(ic => { const div = document.createElement('div'); div.className = `icon-option ${ic===selectedItemIcon?'selected':''}`; div.innerHTML = `<span class="material-icons-round">${ic}</span>`; div.onclick = () => { selectedItemIcon = ic; renderIconSelection(); }; grid.appendChild(div); }); function renderIconSelection() { document.querySelectorAll('.icon-option').forEach(e => { e.classList.toggle('selected', e.innerText === selectedItemIcon); }); } function hexToRgb(hex) { var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex); return result ? `${parseInt(result[1], 16)},${parseInt(result[2], 16)},${parseInt(result[3], 16)}` : null; } document.getElementById('modal-create-item').style.display='flex'; };
@@ -220,15 +225,46 @@ window.deleteCurrentFolder = () => { const items = state.inventory.filter(i => i
 window.moveItemAction = () => { const targetFid = document.getElementById('detail-move-select').value || null; const item = state.inventory.find(i => i.id === editingItemId); item.folderId = targetFid; DataManager.save(state); updateInvRender(); closeModal('modal-item-detail'); showToast("이동되었습니다."); };
 window.deleteItemAction = () => { closeModal('modal-item-detail'); openConfirmModal("아이템 삭제", "정말 삭제하시겠습니까?", () => { state.inventory = state.inventory.filter(x => x.id !== editingItemId); DataManager.save(state); updateInvRender(); showToast("삭제되었습니다."); }); };
 function renderShop() { const b = document.getElementById('shop-container'); b.innerHTML = ''; state.shopItems.forEach(i => { b.innerHTML += `<div class="card" style="display:flex;justify-content:space-between;align-items:center;"><span>${i.name}</span><div style="display:flex;gap:5px;"><button class="btn-shop btn-sm" onclick="buyItem('${i.id}', ${i.cost})">${i.cost}G</button><button class="btn-sm btn-danger" onclick="confirmDeleteShopItem('${i.id}')">🗑️</button></div></div>`; }); }
-window.buyItem = (id, cost) => { if(state.gold >= cost) { openConfirmModal("구매 확인", "정말 구매하시겠습니까?", () => { state.gold -= cost; DataManager.save(state); updateGlobalUI(); renderShop(); showToast("구매가 완료되었습니다."); }); } else { showToast("골드가 부족합니다."); } };
+
+// [v12.0] 상점 구매 (통계 업데이트)
+window.buyItem = (id, cost) => {
+    if(state.gold >= cost) {
+        openConfirmModal("구매 확인", "정말 구매하시겠습니까?", () => { 
+            state.gold -= cost; 
+            
+            // 통계 업데이트
+            state.statistics.shop.purchases += 1;
+            state.statistics.shop.goldSpent += cost;
+            
+            DataManager.save(state); 
+            updateGlobalUI(); 
+            renderShop(); 
+            showToast("구매가 완료되었습니다."); 
+        });
+    } else {
+        showToast("골드가 부족합니다.");
+    }
+};
+
 window.openEditSkillModal = (sid) => { editingSkillId = sid; const s = state.skills[sid]; document.getElementById('modal-edit-skill').style.display = 'flex'; document.getElementById('edit-skill-name').value = s.name; const sel = document.getElementById('edit-skill-mastery'); sel.innerHTML = ''; for(let mid in state.masteries) sel.innerHTML += `<option value="${mid}" ${mid===s.mastery?'selected':''}>${state.masteries[mid].name}</option>`; };
 window.saveSkillEdit = () => { const n = document.getElementById('edit-skill-name').value.trim(); if(!n) return showToast("이름을 입력해주세요."); state.skills[editingSkillId].name = n; state.skills[editingSkillId].mastery = document.getElementById('edit-skill-mastery').value; DataManager.save(state); updateGlobalUI(); renderCharacter(); renderQuest(); closeModal('modal-edit-skill'); showToast("수정되었습니다."); };
 window.deleteSkillEdit = () => { openConfirmModal("스킬 삭제", "스킬을 보관함(휴지통)으로 이동하시겠습니까?", () => { state.skills[editingSkillId].hidden = true; DataManager.save(state); updateGlobalUI(); renderCharacter(); renderQuest(); closeModal('modal-edit-skill'); showToast("보관함으로 이동되었습니다."); }); };
 window.openEditMasteryModal = (mid) => { editingMasteryId = mid; const m = state.masteries[mid]; document.getElementById('modal-edit-mastery').style.display = 'flex'; document.getElementById('edit-mastery-name').value = m.name; const sel = document.getElementById('edit-mastery-core'); sel.innerHTML = ''; ['STR','DEX','INT','WIS','VIT'].forEach(c => sel.innerHTML += `<option value="${c}" ${c===m.core?'selected':''}>${state.cores[c].name}</option>`); };
 window.saveMasteryEdit = () => { const n = document.getElementById('edit-mastery-name').value.trim(); if(!n) return showToast("이름을 입력해주세요."); state.masteries[editingMasteryId].name = n; state.masteries[editingMasteryId].core = document.getElementById('edit-mastery-core').value; DataManager.save(state); updateGlobalUI(); renderCharacter(); closeModal('modal-edit-mastery'); showToast("수정되었습니다."); };
 window.deleteMasteryEdit = () => { openConfirmModal("마스터리 삭제", "이 마스터리와 하위 스킬들이 모두 영구적으로 삭제됩니다.\n계속하시겠습니까?", () => { for(let s in state.skills) if(state.skills[s].mastery === editingMasteryId) delete state.skills[s]; delete state.masteries[editingMasteryId]; DataManager.save(state); updateGlobalUI(); renderCharacter(); renderQuest(); closeModal('modal-edit-mastery'); showToast("삭제되었습니다."); }); };
+window.openTitleModal=()=>{document.getElementById('modal-title').style.display='flex';switchTitleTab('title');};
+window.switchTitleTab=(t)=>{document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById(`tab-btn-${t}`).classList.add('active');const l=document.getElementById('title-list-container');l.innerHTML='';const it=t==='title'?state.unlockedTitles:state.unlockedJobs;const c=t==='title'?state.currentTitle:state.currentJob;if(it.length===0)l.innerHTML='<div style="padding:10px;color:#888;">목록이 없습니다.</div>';it.forEach(i=>{const cls=c===i?'active':'';l.innerHTML+=`<div class="list-item ${cls}" onclick="equip${t==='title'?'Title':'Job'}('${i}')"><span>${i}</span>${cls?'<span class="material-icons-round" style="font-size:14px;">check</span>':''}</div>`});};
+window.equipTitle=(t)=>{state.currentTitle=t;DataManager.save(state);updateGlobalUI();switchTitleTab('title');showToast(`칭호가 [${t}](으)로 변경되었습니다.`);};
+window.equipJob=(j)=>{state.currentJob=j;DataManager.save(state);updateGlobalUI();switchTitleTab('job');showToast(`직업이 [${j}](으)로 변경되었습니다.`);};
+window.openSkillCreateModal=()=>{document.getElementById('modal-create-skill').style.display='flex';const g=document.getElementById('core-select-group');g.innerHTML='';['STR','DEX','INT','WIS','VIT'].forEach(c=>{const d=document.createElement('div');d.className='chip';d.innerText=c;d.onclick=()=>{document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));d.classList.add('active');selectedCoreForCreate=c;updateMasterySelect(c);};g.appendChild(d);});updateMasterySelect(null);};
+function updateMasterySelect(c){const s=document.getElementById('new-mastery-select');s.innerHTML='';if(!c){s.innerHTML='<option>-- 스탯 선택 --</option>';return;}for(let m in state.masteries)if(state.masteries[m].core===c)s.innerHTML+=`<option value="${m}">${state.masteries[m].name}</option>`;s.innerHTML+='<option value="NEW">+ 새 마스터리 생성</option>';checkMasteryInput();}
+window.checkMasteryInput=()=>{document.getElementById('new-mastery-input').style.display=document.getElementById('new-mastery-select').value==='NEW'?'block':'none';};
+window.createSkillAction=()=>{if(!selectedCoreForCreate)return showToast("스탯을 선택해주세요.");let m=document.getElementById('new-mastery-select').value;const mi=document.getElementById('new-mastery-input').value.trim();const sn=document.getElementById('new-skill-name').value.trim();if(m==='NEW'&&!mi)return showToast("마스터리 이름을 입력해주세요.");if(!sn)return showToast("스킬 이름을 입력해주세요.");if(m==='NEW'){m='m'+Date.now();state.masteries[m]={name:mi,core:selectedCoreForCreate,level:0};}state.skills['s'+Date.now()]={name:sn,mastery:m,seconds:0,level:0,hidden:false};DataManager.save(state);closeModal('modal-create-skill');updateGlobalUI();renderCharacter();showToast("스킬을 습득했습니다.");};
+window.openQuestManager=()=>{const sk=Object.values(state.skills).filter(s=>!s.hidden);if(sk.length===0)return showToast("생성된 스킬이 없습니다.");document.getElementById('modal-create-quest').style.display='flex';const m=document.getElementById('quest-main-skill');const s=document.getElementById('quest-sub-skill');m.innerHTML='';s.innerHTML='<option value="">-- 보너스 없음 --</option>';sk.forEach(k=>{const id=Object.keys(state.skills).find(key=>state.skills[key]===k);const o=`<option value="${id}">${k.name}</option>`;m.innerHTML+=o;s.innerHTML+=o;});};
+window.createQuestAction=()=>{const n=document.getElementById('new-quest-name').value.trim();const m=document.getElementById('quest-main-skill').value;const s=document.getElementById('quest-sub-skill').value;if(!n)return showToast("의뢰 이름을 입력해주세요.");if(!m)return showToast("주 목표를 선택해주세요.");state.quests['q'+Date.now()]={name:n,mainSkillId:m,subSkillId:s||null};DataManager.save(state);closeModal('modal-create-quest');renderQuest();showToast("의뢰가 등록되었습니다.");};
+window.confirmDeleteQuest = (id) => { if (activeQuestId === id) return showToast("현재 진행 중인 의뢰는 삭제할 수 없습니다."); openConfirmModal("의뢰 삭제", "정말 삭제하시겠습니까?", () => { delete state.quests[id]; DataManager.save(state); renderQuest(); showToast("삭제되었습니다."); }); };
+window.confirmDeleteShopItem=(id)=>{openConfirmModal("상품 삭제", "정말 삭제하시겠습니까?", ()=>{state.shopItems=state.shopItems.filter(i=>i.id!==id);DataManager.save(state);renderShop();showToast("삭제되었습니다.");});};
 
-// 탭 전환 로직
 const switchTab = (t) => {
     document.querySelectorAll('.tab-screen').forEach(e => e.classList.remove('active'));
     document.getElementById(`tab-${t}`).classList.add('active');
@@ -246,26 +282,69 @@ const switchTab = (t) => {
 };
 window.switchTab = switchTab;
 
+// [v12.0] 전투 시작 (밤샘 카운트 로직 추가)
 window.startBattle = (id) => {
     if (activeQuestId || timer) return showToast("이미 진행 중인 의뢰가 있습니다.");
+    
+    // 밤샘 체크 (00~06시)
+    const hour = new Date().getHours();
+    if (hour >= 0 && hour < 6) {
+        state.statistics.quest.nightOwl++;
+    }
+    
     activeQuestId = id;
     sessionSec = 0;
     switchTab('battle');
 };
 
+// [v12.0] 전투 종료 (통계 업데이트 및 전리품 로직 개선)
 window.stopBattleAction = () => {
     if (!timer) return;
     clearInterval(timer); timer = null;
+    
     const q = state.quests[activeQuestId];
     const ms = state.skills[q.mainSkillId];
+    
+    // 1. 기본 보상
     state.gold += sessionSec;
     if (ms) ms.seconds += sessionSec;
     if (q.subSkillId) { const ss = state.skills[q.subSkillId]; if (ss) ss.seconds += Math.floor(sessionSec * 0.2); }
+    
+    // 2. 통계 업데이트
+    state.statistics.quest.completed++;
+    state.statistics.battle.totalSeconds += sessionSec;
+
     let msg = `완료! (+${sessionSec}G)`;
-    if (sessionSec > 60 && Math.random() > 0.7) { const lid = 'l' + Date.now(); state.inventory.push({ id: lid, type: 'loot', icon: 'redeem', name: '전리품', desc: '수련 보상', folderId: null }); msg += ' [전리품 획득!]'; }
+
+    // 3. 전리품 드랍 (데이터 파일의 확률 테이블 사용)
+    LOOT_TABLE.forEach(loot => {
+        // 조건 확인
+        let conditionMet = true;
+        if (loot.condition) {
+            if (loot.condition.type === 'min_time' && sessionSec < loot.condition.value) conditionMet = false;
+        }
+
+        // 확률 확인
+        if (conditionMet && Math.random() < loot.dropRate) {
+            const lootId = 'loot_' + Date.now() + Math.random();
+            state.inventory.push({
+                id: lootId,
+                type: 'loot',
+                icon: loot.icon, // Google Material Icons text name
+                name: loot.name,
+                desc: loot.desc,
+                folderId: null
+            });
+            msg += ` [${loot.name} 획득!]`;
+        }
+    });
+
     showToast(msg);
     sessionSec = 0; activeQuestId = null;
-    DataManager.save(state); updateGlobalUI(); 
+    
+    DataManager.save(state); 
+    updateGlobalUI(); 
+    
     updateBattleUI('idle');
 };
 
@@ -276,14 +355,12 @@ function updateBattleUI(mode) {
     const btnSelect = document.getElementById('btn-select-quest');
     const btnStop = document.getElementById('btn-stop');
 
-    // Phaser 화면 갱신
     BattleManager.init(mode);
 
     if (mode === 'battle') {
         const q = state.quests[activeQuestId];
         title.innerText = q ? q.name : '알 수 없는 의뢰';
         
-        // [v11.9 Fix] 초기화 없이 현재 시간 즉시 표시 (버퍼링 제거)
         const m = Math.floor(sessionSec / 60).toString().padStart(2, '0');
         const s = (sessionSec % 60).toString().padStart(2, '0');
         timerText.innerText = `00:${m}:${s}`;
@@ -292,7 +369,6 @@ function updateBattleUI(mode) {
         btnSelect.style.display = 'none';
         btnStop.style.display = 'inline-flex';
 
-        // [v11.9 Fix] 타이머가 이미 돌고 있으면 건드리지 않음
         if (!timer) {
             timer = setInterval(() => {
                 sessionSec++;
