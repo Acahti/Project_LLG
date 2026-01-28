@@ -2,9 +2,9 @@ export const BattleManager = {
     game: null,
     currentMode: 'idle',
 
-    // [v11.7 Fix] 무조건 파괴 후 재생성 (안정성 최우선)
+    // [v11.8 Fix] 화면 꽉 차게 스케일링 설정 추가
     init: (mode = 'idle') => {
-        // 1. 기존 게임이 있다면 가차없이 파괴
+        // 1. 기존 게임이 있다면 파괴
         if (BattleManager.game) {
             try {
                 BattleManager.game.destroy(true);
@@ -12,25 +12,35 @@ export const BattleManager = {
             BattleManager.game = null;
         }
 
-        // 2. DOM 잔여물 청소
+        // 2. DOM 청소
         const root = document.getElementById('phaser-root');
         if (root) root.innerHTML = '';
 
-        // 3. 새 설정으로 게임 생성
+        // 3. 게임 설정 (스케일링 추가)
         const config = {
             type: Phaser.AUTO,
-            parent: 'phaser-root',
+            parent: 'phaser-root', // 여기에 캔버스가 들어감
             width: 320,
             height: 200,
             backgroundColor: '#121214',
-            pixelArt: true,
+            pixelArt: true, // 도트가 흐릿해지지 않게 설정
+            
+            // [핵심 수정] 화면 크기에 맞춰 늘리기
+            scale: {
+                mode: Phaser.Scale.FIT, // 부모 div에 맞춰 비율 유지하며 꽉 채움
+                autoCenter: Phaser.Scale.CENTER_BOTH, // 중앙 정렬
+                width: 320,
+                height: 200
+            },
+            
             scene: { preload: preload, create: create, update: update }
         };
 
         BattleManager.currentMode = mode;
+        // 약간의 딜레이로 DOM 렌더링 확보
         setTimeout(() => {
             BattleManager.game = new Phaser.Game(config);
-        }, 50); // 아주 짧은 딜레이로 DOM 렌더링 후 실행 보장
+        }, 50); 
     },
 
     destroy: () => {
@@ -46,7 +56,6 @@ function preload() {}
 function create() {
     // 모드 확인
     const mode = BattleManager.currentMode;
-    const bgGroup = this.add.group();
     
     // ================= [IDLE 모드] =================
     if (mode === 'idle') {
@@ -54,7 +63,7 @@ function create() {
         this.cameras.main.setBackgroundColor('#121214');
         
         // 별 (랜덤)
-        for (let i = 0; i < 30; i++) {
+        for (let i = 0; i < 40; i++) {
             const x = Phaser.Math.Between(0, 320);
             const y = Phaser.Math.Between(0, 150);
             const star = this.add.rectangle(x, y, 2, 2, 0xFFFFFF);
@@ -86,18 +95,18 @@ function create() {
             quantity: 2
         });
 
-        // 주인공 (앉음)
+        // 주인공 (앉음 - 뒷모습 느낌)
         const hero = this.add.container(130, 175);
         hero.add(this.add.rectangle(0, 0, 14, 14, 0x4D96FF)); // Body
         hero.add(this.add.rectangle(0, -10, 10, 10, 0xFFCCAA)); // Head
     } 
     // ================= [BATTLE 모드] =================
     else {
-        // 배경: 전투
+        // 배경: 전투 (약간 붉은끼)
         this.cameras.main.setBackgroundColor('#2a1a1a');
         
-        // 바닥
-        this.add.rectangle(160, 195, 320, 30, 0x111111);
+        // 바닥 (꽉 채우기 위해 너비 넉넉하게)
+        this.add.rectangle(160, 195, 330, 30, 0x111111);
 
         // 주인공 (전투)
         const hero = this.add.container(80, 175);
@@ -111,7 +120,7 @@ function create() {
         enemy.add(this.add.rectangle(-6, -4, 4, 4, 0x000000)); // Eye
         enemy.add(this.add.rectangle(6, -4, 4, 4, 0x000000)); // Eye
 
-        // 전투 애니메이션
+        // 전투 애니메이션 (타격감)
         this.tweens.add({
             targets: hero,
             x: 210, duration: 200, yoyo: true, hold: 50, repeat: -1, repeatDelay: 500
