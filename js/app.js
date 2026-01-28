@@ -560,10 +560,20 @@ window.createSkillAction=()=>{if(!selectedCoreForCreate)return showToast("스탯
 
 window.openQuestManager=()=>{const sk=Object.values(state.skills).filter(s=>!s.hidden);if(sk.length===0)return showToast("생성된 스킬이 없습니다.");document.getElementById('modal-create-quest').style.display='flex';const m=document.getElementById('quest-main-skill');const s=document.getElementById('quest-sub-skill');m.innerHTML='';s.innerHTML='<option value="">-- 보너스 없음 --</option>';sk.forEach(k=>{const id=Object.keys(state.skills).find(key=>state.skills[key]===k);const o=`<option value="${id}">${k.name}</option>`;m.innerHTML+=o;s.innerHTML+=o;});};
 window.createQuestAction=()=>{const n=document.getElementById('new-quest-name').value.trim();const m=document.getElementById('quest-main-skill').value;const s=document.getElementById('quest-sub-skill').value;if(!n)return showToast("의뢰 이름을 입력해주세요.");if(!m)return showToast("주 목표를 선택해주세요.");state.quests['q'+Date.now()]={name:n,mainSkillId:m,subSkillId:s||null};DataManager.save(state);closeModal('modal-create-quest');renderQuest();showToast("의뢰가 등록되었습니다.");};
-window.confirmDeleteQuest=(id)=>{openConfirmModal("의뢰 삭제", "정말 삭제하시겠습니까?", ()=>{delete state.quests[id];DataManager.save(state);renderQuest();showToast("삭제되었습니다.");});};
+// [v11.5] 전투 중 삭제 방지 로직 적용
+window.confirmDeleteQuest = (id) => {
+    if (activeQuestId === id) {
+        return showToast("현재 진행 중인 의뢰는 삭제할 수 없습니다.");
+    }
+    openConfirmModal("의뢰 삭제", "정말 삭제하시겠습니까?", () => {
+        delete state.quests[id];
+        DataManager.save(state);
+        renderQuest();
+        showToast("삭제되었습니다.");
+    });
+};
 window.confirmDeleteShopItem=(id)=>{openConfirmModal("상품 삭제", "정말 삭제하시겠습니까?", ()=>{state.shopItems=state.shopItems.filter(i=>i.id!==id);DataManager.save(state);renderShop();showToast("삭제되었습니다.");});};
 
-// [수정됨] 전투 시작: 중복 실행 방지
 window.startBattle=(id)=>{
     if (activeQuestId || timer) { 
         return showToast("이미 진행 중인 의뢰가 있습니다.");
@@ -571,7 +581,6 @@ window.startBattle=(id)=>{
     activeQuestId=id;
     sessionSec=0;
     
-    // 탭 이동 및 UI 갱신
     switchTab('battle');
 };
 
@@ -584,7 +593,6 @@ document.getElementById('btn-stop').onclick=()=>{if(!timer)return;clearInterval(
     }
     showToast(msg);sessionSec=0;activeQuestId=null;DataManager.save(state);updateGlobalUI();switchTab('quest');
     
-    // UI 대기 모드로 전환
     updateBattleUI('idle');
 };
 
@@ -595,8 +603,6 @@ window.openRestoreSkillMode=()=>{document.getElementById('modal-restore-skill').
 window.restoreSkill=(sid)=>{state.skills[sid].hidden=false;DataManager.save(state);openRestoreSkillMode();renderCharacter();showToast("복구되었습니다.");};
 window.permDeleteSkill=(sid)=>{openConfirmModal("영구 삭제", "정말 삭제하시겠습니까?", ()=>{delete state.skills[sid];DataManager.save(state);openRestoreSkillMode();updateGlobalUI();showToast("삭제되었습니다.");});};
 
-// 탭 전환 및 UI 업데이트 통합
-// [수정됨] window 객체에 할당 (HTML onclick에서 접근 가능하도록)
 const switchTab = (t) => {
     document.querySelectorAll('.tab-screen').forEach(e=>e.classList.remove('active'));
     document.getElementById(`tab-${t}`).classList.add('active');
@@ -613,7 +619,6 @@ const switchTab = (t) => {
     }
     if(t==='shop') renderShop();
     
-    // 전투 탭 진입 시 UI 갱신
     if (t === 'battle') {
         if (activeQuestId) {
             updateBattleUI('battle');
@@ -622,9 +627,8 @@ const switchTab = (t) => {
         }
     }
 };
-window.switchTab = switchTab; // window에 할당
+window.switchTab = switchTab; 
 
-// 전투/대기 UI 상태 전환 함수
 function updateBattleUI(mode) {
     const title = document.getElementById('battle-quest-name');
     const timerText = document.getElementById('battle-timer');
@@ -632,7 +636,6 @@ function updateBattleUI(mode) {
     const btnSelect = document.getElementById('btn-select-quest');
     const btnStop = document.getElementById('btn-stop');
 
-    // Phaser 모드 전환
     BattleManager.init(mode); 
     BattleManager.setMode(mode);
 
