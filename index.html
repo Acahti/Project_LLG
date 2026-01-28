@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>PROJECT: LLG v10.8</title>
+    <title>PROJECT: LLG v10.9</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="css/style.css?v=10.8">
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css?v=10.9">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
 </head>
@@ -66,7 +65,7 @@
             <div id="inventory-content" style="display:none;">
                 <div class="inv-nav">
                     <button class="btn-sm btn-secondary" onclick="exitToPortal()"><span class="material-icons-round">arrow_back</span></button>
-                    <div class="flex-center">
+                    <div class="inv-center-title">
                         <div id="inv-breadcrumb" class="breadcrumb">카테고리</div>
                         <button id="btn-folder-settings" class="icon-btn" style="display:none;" onclick="openFolderSettings()">
                             <span class="material-icons-round" style="font-size:1.2em;">settings</span>
@@ -86,7 +85,7 @@
         </section>
 
         <section id="tab-shop" class="tab-screen">
-            <div class="card header-card"><span>환전소</span><button class="btn-sm" onclick="openCreateShopItemModal()"><span class="material-icons-round">add</span> 상품 추가</button></div>
+            <div class="card header-card"><span>상점</span><button class="btn-sm" onclick="openCreateShopItemModal()"><span class="material-icons-round">add</span> 상품 추가</button></div>
             <div id="shop-container"></div>
         </section>
     </main>
@@ -99,6 +98,24 @@
         <div class="nav-btn" data-target="shop"><span class="material-icons-round">storefront</span><span class="nav-label">상점</span></div>
     </nav>
 
+    <div id="modal-create-skill" class="modal">
+        <div class="modal-content">
+            <h3>스킬 습득</h3>
+            <label class="input-label">1. 핵심 스탯</label>
+            <div id="core-select-group" class="chip-group"></div>
+            
+            <label class="input-label">2. 마스터리</label>
+            <select id="new-mastery-select" class="input-dark" onchange="checkMasteryInput()"></select>
+            <input type="text" id="new-mastery-input" class="input-dark" style="display:none; margin-top:5px;" placeholder="새 마스터리 이름 입력">
+            
+            <label class="input-label">3. 스킬 이름</label>
+            <input type="text" id="new-skill-name" class="input-dark" placeholder="스킬 이름을 입력하세요">
+            
+            <button onclick="createSkillAction()" class="btn-primary" style="margin-top:20px;">습득하기</button>
+            <button onclick="closeModal('modal-create-skill')" class="btn-text">취소</button>
+        </div>
+    </div>
+
     <div id="modal-folder-settings" class="modal"><div class="modal-content"><h3>폴더 관리</h3><label class="input-label">이름</label><input type="text" id="edit-folder-name" class="input-dark"><button onclick="saveFolderAction()" class="btn-primary" style="margin-top:20px;">변경 저장</button><div class="danger-zone"><button onclick="deleteFolderAction()" class="btn-danger">폴더 삭제</button><p class="portal-desc">비어있어야 삭제 가능</p></div><button onclick="closeModal('modal-folder-settings')" class="btn-text">닫기</button></div></div>
     <div id="modal-create-folder" class="modal"><div class="modal-content"><h3>새 폴더</h3><label class="input-label">이름</label><input type="text" id="new-folder-name" class="input-dark"><button onclick="createFolderAction()" class="btn-primary" style="margin-top:20px;">생성</button><button onclick="closeModal('modal-create-folder')" class="btn-text">취소</button></div></div>
     <div id="modal-item-detail" class="modal"><div class="modal-content"><div class="item-card-header"><div id="detail-badge" class="badge-box"></div><div id="detail-name" class="item-card-name"></div></div><div id="detail-desc" class="item-card-desc"></div><div class="item-action-bar"><button id="btn-move-item" class="btn-secondary" style="width:50px;" title="이동"><span class="material-icons-round">folder_open</span></button><button id="btn-edit-item" class="btn-primary" style="width:50px;" title="수정"><span class="material-icons-round">edit</span></button><button id="btn-delete-item" class="btn-danger" style="width:50px;" title="삭제"><span class="material-icons-round">delete</span></button><button onclick="closeModal('modal-item-detail')" class="btn-secondary" style="width:50px;">닫기</button></div></div></div>
@@ -110,10 +127,7 @@
     <div id="modal-settings-theme" class="modal"><div class="modal-content"><h3>테마</h3><button onclick="setTheme('light')" style="background:#fff; color:#222; margin-bottom:10px;">☀️ 라이트</button><button onclick="setTheme('dark')" style="background:#222; color:#fff;">🌙 다크</button><button onclick="openSettingsMainModal()" class="btn-text">이전</button></div></div>
     <div id="modal-settings-data" class="modal"><div class="modal-content"><h3>데이터</h3><button id="btn-export">💾 백업 저장</button><button id="btn-import" style="background:#666; margin-top:10px;">📂 백업 로드</button><div class="danger-zone"><button id="btn-reset" class="btn-danger">⚠️ 초기화</button></div><button onclick="openSettingsMainModal()" class="btn-text">이전</button><input type="file" id="file-input" style="display:none;" accept=".json"></div></div>
     <div id="modal-confirm" class="modal"><div class="modal-content"><h3>확인</h3><p id="confirm-msg" style="text-align:center; margin:20px 0;"></p><div style="display:flex; gap:10px;"><button id="btn-confirm-yes" class="btn-primary">확인</button><button onclick="closeConfirmModal()" style="background:#666;">취소</button></div></div></div>
-    
-    <div id="modal-create-skill" class="modal"><div class="modal-content"><h3>스킬 습득</h3><div id="core-select-group" class="chip-group"></div><select id="new-mastery-select" class="input-dark" onchange="checkMasteryInput()"></select><input type="text" id="new-mastery-input" class="input-dark" style="display:none;" placeholder="예: 언어능력"><input type="text" id="new-skill-name" class="input-dark" placeholder="예: 문해력"><button onclick="createSkillAction()">습득</button><button onclick="closeModal('modal-create-skill')" class="btn-text">취소</button></div></div>
-    
-    <div id="modal-create-quest" class="modal"><div class="modal-content"><h3>의뢰 생성</h3><input type="text" id="new-quest-name" class="input-dark" placeholder="예: 심리학 책 읽기"><label>주목표</label><select id="quest-main-skill" class="input-dark"></select><label>부목표</label><select id="quest-sub-skill" class="input-dark"></select><button onclick="createQuestAction()">게시</button><button onclick="closeModal('modal-create-quest')" class="btn-text">취소</button></div></div>
+    <div id="modal-create-quest" class="modal"><div class="modal-content"><h3>의뢰 생성</h3><input type="text" id="new-quest-name" class="input-dark" placeholder="의뢰명"><label>주목표</label><select id="quest-main-skill" class="input-dark"></select><label>부목표</label><select id="quest-sub-skill" class="input-dark"></select><button onclick="createQuestAction()">게시</button><button onclick="closeModal('modal-create-quest')" class="btn-text">취소</button></div></div>
     <div id="modal-edit-skill" class="modal"><div class="modal-content"><h3>스킬 수정</h3><input type="text" id="edit-skill-name" class="input-dark"><select id="edit-skill-mastery" class="input-dark"></select><button onclick="saveSkillEdit()">저장</button><button onclick="deleteSkillEdit()" class="btn-danger">보관함으로 이동</button><button onclick="closeModal('modal-edit-skill')" class="btn-text">닫기</button></div></div>
     <div id="modal-edit-mastery" class="modal"><div class="modal-content"><h3>마스터리 수정</h3><input type="text" id="edit-mastery-name" class="input-dark"><select id="edit-mastery-core" class="input-dark"></select><button onclick="saveMasteryEdit()">저장</button><button onclick="deleteMasteryEdit()" class="btn-danger">전체 삭제</button><button onclick="closeModal('modal-edit-mastery')" class="btn-text">닫기</button></div></div>
     <div id="modal-restore-skill" class="modal"><div class="modal-content"><h3>기억의 무덤</h3><div id="deleted-skill-list" class="list-group"></div><button onclick="closeModal('modal-restore-skill')" class="btn-text">닫기</button></div></div>
