@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>PROJECT: LLG v10.9</title>
+    <title>PROJECT: LLG v11.0</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="css/style.css?v=10.9">
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css?v=11.0">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
 </head>
@@ -93,13 +92,11 @@
                         <span class="material-icons-round">arrow_back</span>
                     </button>
                     <span id="inv-current-path" class="inv-path">전리품</span>
-                    <div style="width:40px;"></div> </div>
+                    <div style="width:40px;"></div>
+                </div>
 
-                <div class="chip-group" id="inv-action-bar">
-                    </div>
-
-                <div id="inventory-grid" class="inv-grid">
-                    </div>
+                <div class="chip-group" id="inv-action-bar"></div>
+                <div id="inventory-grid" class="inv-grid"></div>
             </div>
         </section>
 
@@ -146,7 +143,7 @@
             <label class="input-label">기본 글씨 크기</label>
             <div class="flex-center" style="background:rgba(0,0,0,0.1); padding:10px; border-radius:8px;">
                 <button class="btn-sm" onclick="adjustFontSize(-1)" style="width:40px;">-</button>
-                <span id="current-font-size" style="width:60px; text-align:center; font-size:1.2em;">10</span>
+                <span id="current-font-size" style="width:60px; text-align:center; font-size:1.2em;">12</span>
                 <button class="btn-sm" onclick="adjustFontSize(1)" style="width:40px;">+</button>
             </div>
             <button onclick="openSettingsMainModal()" class="btn-text">이전으로</button>
@@ -220,12 +217,32 @@
                     <button onclick="deleteItemAction()" class="btn-danger" style="margin-top:5px;">🗑️ 삭제</button>
                 </div>
             </div>
-
             <button onclick="closeModal('modal-item-detail')" class="btn-text">닫기</button>
         </div>
     </div>
     
-    <div id="modal-create-item" class="modal"><div class="modal-content"><h3>기록 추가</h3><label class="input-label">이름</label><input type="text" id="new-item-name" class="input-dark"><label class="input-label">설명</label><input type="text" id="new-item-desc" class="input-dark"><label class="input-label">아이콘</label><input type="text" id="new-item-icon" class="input-dark" value="📕"><button onclick="createItemAction()" class="btn-primary" style="margin-top:15px;">저장</button><button onclick="closeModal('modal-create-item')" class="btn-text">취소</button></div></div>
+    <div id="modal-create-item" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-bottom:15px;">기록 작성</h3>
+            
+            <label class="input-label">1. 이름</label>
+            <input type="text" id="new-item-name" class="input-dark" placeholder="기록의 제목">
+            
+            <label class="input-label">2. 배경 색상</label>
+            <div id="new-item-color-picker" class="color-picker-grid"></div>
+
+            <label class="input-label">3. 아이콘 선택</label>
+            <div id="new-item-icon-picker" class="icon-select-grid"></div>
+            
+            <label class="input-label" style="margin-top:15px;">설명 (선택)</label>
+            <input type="text" id="new-item-desc" class="input-dark" placeholder="간단한 메모">
+
+            <button onclick="createItemAction()" class="btn-primary" style="margin-top:20px;">
+                <span class="material-icons-round">save</span> 저장하기
+            </button>
+            <button onclick="closeModal('modal-create-item')" class="btn-text">취소</button>
+        </div>
+    </div>
 
     <div id="modal-create-skill" class="modal">
         <div class="modal-content">
