@@ -201,7 +201,6 @@ window.enterFolder = (fid) => {
     updateInvRender();
 };
 
-// [v11.0] 렌더링 함수 업데이트 (아이콘 프레임, 색상 적용)
 function updateInvRender() {
     const portal = document.getElementById('inv-portal-view');
     const list = document.getElementById('inv-list-view');
@@ -269,7 +268,6 @@ function updateInvRender() {
     }
     
     items.forEach(i => {
-        // [v11.0] 아이콘 프레임 로직
         const bg = i.type === 'record' ? (i.color || '#4D96FF') : (i.color || 'transparent');
         const iconColor = i.type === 'record' ? '#fff' : (i.type==='loot' ? 'var(--gold)' : '#fff');
         const frameClass = i.type === 'record' ? 'type-record' : 'type-loot';
@@ -284,7 +282,39 @@ function updateInvRender() {
     });
 }
 
-// [v11.0] 아이템 생성(기록) 모달 열기 - 초기화
+// [v11.1] 상세 모달 열기 로직 개선
+window.openItemDetailModal = (id) => {
+    editingItemId = id;
+    const item = state.inventory.find(i => i.id === id);
+    
+    // 아이콘 & 이름 & 타입
+    document.getElementById('detail-item-icon').innerText = item.icon;
+    document.getElementById('detail-item-icon').style.color = item.type === 'record' ? 'var(--accent)' : 'var(--gold)';
+    
+    document.getElementById('detail-item-name').innerText = item.name;
+    document.getElementById('detail-item-type').innerText = item.type === 'record' ? '기록물' : '전리품';
+    
+    // 내용 (설명)
+    const descBox = document.getElementById('detail-item-desc');
+    descBox.innerText = item.desc || '(내용 없음)';
+    
+    // 이동 옵션 (현재 카테고리의 폴더들 + 루트)
+    const select = document.getElementById('detail-move-select');
+    select.innerHTML = '<option value="">(최상위)</option>';
+    const folders = state.folders.filter(f => f.type === invState.category);
+    folders.forEach(f => {
+        const selected = item.folderId === f.id ? 'selected' : '';
+        select.innerHTML += `<option value="${f.id}" ${selected}>${f.name}</option>`;
+    });
+    
+    // 기록물이 아니면 수정/삭제 버튼 그룹 숨김 (공간 확보)
+    const isRecord = item.type === 'record';
+    const actionGroup = document.getElementById('record-only-actions');
+    actionGroup.style.display = isRecord ? 'flex' : 'none';
+    
+    document.getElementById('modal-item-detail').style.display = 'flex';
+};
+
 window.openCreateItemModal = () => {
     editingItemId = null;
     document.querySelector('#modal-create-item h3').innerText = "새로운 기록";
@@ -326,7 +356,6 @@ window.openCreateItemModal = () => {
     document.getElementById('modal-create-item').style.display='flex';
 };
 
-// [v11.0] 아이템 수정 모달 열기
 window.openEditItemMode = () => {
     closeModal('modal-item-detail');
     const i = state.inventory.find(x => x.id === editingItemId);
@@ -335,7 +364,6 @@ window.openEditItemMode = () => {
     document.getElementById('new-item-name').value = i.name;
     document.getElementById('new-item-desc').value = i.desc;
     
-    // 색상 복원
     selectedItemColor = i.color || RECORD_COLORS[0];
     const palette = document.getElementById('new-item-color-picker');
     palette.innerHTML = '';
@@ -348,12 +376,10 @@ window.openEditItemMode = () => {
     });
     function renderPaletteSelection(){
         document.querySelectorAll('.color-option').forEach(e => {
-            // style.backgroundColor는 rgb()로 반환될 수 있으므로 비교 시 주의
             e.classList.toggle('selected', e.style.backgroundColor === selectedItemColor || e.style.backgroundColor.replace(/\s/g, '') === 'rgb('+hexToRgb(selectedItemColor)+')');
         });
     }
 
-    // 아이콘 복원
     selectedItemIcon = i.icon || RECORD_ICONS[0];
     const grid = document.getElementById('new-item-icon-picker');
     grid.innerHTML = '';
@@ -369,7 +395,6 @@ window.openEditItemMode = () => {
             e.classList.toggle('selected', e.innerText === selectedItemIcon);
         });
     }
-    // hacky hexToRgb for selection check
     function hexToRgb(hex) {
         var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
         return result ? `${parseInt(result[1], 16)},${parseInt(result[2], 16)},${parseInt(result[3], 16)}` : null;
@@ -378,21 +403,20 @@ window.openEditItemMode = () => {
     document.getElementById('modal-create-item').style.display='flex';
 };
 
-// [v11.0] 저장 동작
 window.createItemAction = () => {
     const n = document.getElementById('new-item-name').value.trim();
     const d = document.getElementById('new-item-desc').value;
     
     if(!n) return showToast("이름을 입력해주세요.");
 
-    if(editingItemId) { // 수정
+    if(editingItemId) { 
         const item = state.inventory.find(x => x.id === editingItemId);
         item.name = n; 
         item.desc = d; 
         item.icon = selectedItemIcon;
         item.color = selectedItemColor;
         showToast("수정되었습니다.");
-    } else { // 생성
+    } else { 
         state.inventory.push({
             id: 'r'+Date.now(),
             type: 'record',
@@ -457,29 +481,6 @@ window.deleteCurrentFolder = () => {
     });
 };
 
-window.openItemDetailModal = (id) => {
-    editingItemId = id;
-    const item = state.inventory.find(i => i.id === id);
-    
-    document.getElementById('detail-item-icon').innerText = item.icon;
-    document.getElementById('detail-item-name').innerText = item.name;
-    document.getElementById('detail-item-desc').innerText = item.desc || '(설명 없음)';
-    
-    // 이동 옵션
-    const select = document.getElementById('detail-move-select');
-    select.innerHTML = '<option value="">(최상위)</option>';
-    const folders = state.folders.filter(f => f.type === invState.category);
-    folders.forEach(f => {
-        const selected = item.folderId === f.id ? 'selected' : '';
-        select.innerHTML += `<option value="${f.id}" ${selected}>${f.name}</option>`;
-    });
-    
-    // 기록물이 아니면 수정/삭제 버튼 숨김
-    const isRecord = item.type === 'record';
-    document.getElementById('record-only-actions').style.display = isRecord ? 'block' : 'none';
-    
-    document.getElementById('modal-item-detail').style.display = 'flex';
-};
 window.moveItemAction = () => {
     const targetFid = document.getElementById('detail-move-select').value || null; 
     const item = state.inventory.find(i => i.id === editingItemId);
@@ -522,7 +523,6 @@ window.buyItem = (id, cost) => {
     else showToast("골드가 부족합니다.");
 };
 
-// [편집] 로직
 window.openEditSkillModal = (sid) => {
     editingSkillId = sid; const s = state.skills[sid];
     document.getElementById('modal-edit-skill').style.display = 'flex';
