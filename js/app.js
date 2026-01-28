@@ -74,18 +74,29 @@ const bindDataEvents = () => {
     };
 };
 
-// [v12.2] 강력 새로고침 로직
+// [v12.3 Fix] 더 안전한 강제 새로고침 로직
 window.forceRefreshAction = () => {
     openConfirmModal(
         "강제 새로고침", 
-        "앱을 서버에서 다시 불러옵니다.\n저장되지 않은 작업이 소실될 수 있습니다.\n진행하시겠습니까?", 
+        "앱의 캐시를 비우고 다시 로드합니다.\n저장된 데이터는 유지되지만,\n진행 중인 수련은 종료될 수 있습니다.\n진행하시겠습니까?", 
         () => {
+            // 1. 현재 상태 안전하게 저장
             DataManager.save(state);
-            // location.reload(true)는 표준에서 사라졌으나 여전히 많은 모바일 브라우저에서 동작.
-            // 더 확실한 방법은 URL에 타임스탬프를 붙여 이동하는 것.
-            const url = new URL(window.location.href);
-            url.searchParams.set('reload', Date.now());
-            window.location.href = url.toString();
+            
+            // 2. 서비스 워커가 있다면 해제 시도 (캐시 꼬임 방지)
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(registrations => {
+                    for (let registration of registrations) {
+                        registration.unregister();
+                    }
+                });
+            }
+            
+            // 3. 파라미터 방식 대신 표준 reload 사용
+            // true 파라미터는 서버에서 강제로 다시 불러오라는 의미 (일부 브라우저 지원)
+            setTimeout(() => {
+                window.location.reload();
+            }, 100);
         }
     );
 };
