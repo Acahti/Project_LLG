@@ -321,38 +321,142 @@ const switchTab = (t) => {
 };
 window.switchTab = switchTab;
 
+/**
+ * [v12.5] 전투 시작 함수 (Timestamp 기록 방식)
+ */
 window.startBattle = (id) => {
     if (activeQuestId || timer) return showToast("이미 진행 중인 의뢰가 있습니다.");
-    const hour = new Date().getHours();
-    if (hour >= 0 && hour < 6) { state.statistics.quest.nightOwl++; }
+    
+    // 1. 시각 비교를 위해 현재 시각(Timestamp)을 데이터에 저장
+    // 앱을 완전히 종료했다 켜도 유지되도록 state 객체에 기록합니다.
+    state.activeStartTime = Date.now();
     activeQuestId = id;
-    sessionSec = 0;
+    sessionSec = 0; // 화면 표시용 초 초기화
+
+    // 2. 시작 상태 즉시 저장
+    DataManager.save(state);
+    
+    // 3. 전투 탭으로 이동 (Phaser 실행 포함)
     switchTab('battle');
 };
 
+/**
+ * [v12.5] 전투 종료 함수 (심야 구간 겹침 계산 및 오프라인 시간 반영)
+ */
 window.stopBattleAction = () => {
-    if (!timer) return;
-    clearInterval(timer); timer = null;
+    // 진행 중인 의뢰가 없으면 중단
+    if (!activeQuestId) return;
+
+    // 1. 실제 경과 시간 계산 (현재 시각 - 수락 시각)
+    const endTimeMs = Date.now();
+    const startTimeMs = state.activeStartTime || endTimeMs; // 시작 기록이 없으면 현재 시각 기준
+    const totalElapsedSec = Math.floor((endTimeMs - startTimeMs) / 1000);
+
+    // 2. 타이머 중지 및 초기화
+    if (timer) {
+        clearInterval(timer);
+        timer = null;
+    }
+
     const q = state.quests[activeQuestId];
+    if (!q) return;
     const ms = state.skills[q.mainSkillId];
-    state.gold += sessionSec;
-    if (ms) ms.seconds += sessionSec;
-    if (q.subSkillId) { const ss = state.skills[q.subSkillId]; if (ss) ss.seconds += Math.floor(sessionSec * 0.2); }
-    if (sessionSec >= 60) { state.statistics.quest.completed++; } else { window.showToast("의뢰 완료 인정: 최소 1분 이상 수련이 필요합니다."); }
-    state.statistics.battle.totalSeconds += sessionSec;
-    let msg = `완료! (+${sessionSec}G)`;
-    LOOT_TABLE.forEach(loot => {
-        let conditionMet = true;
-        if (loot.condition && loot.condition.type === 'min_time' && sessionSec < loot.condition.value) conditionMet = false;
-        if (conditionMet && Math.random() < loot.dropRate) {
-            const lootId = 'loot_' + Date.now() + Math.random();
-            state.inventory.push({ id: lootId, type: 'loot', icon: loot.icon, name: loot.name, desc: loot.desc, folderId: null });
-            msg += ` [${loot.name} 획득!]`;
+
+    // --- [핵심] 심야 수련 시간(Overlap) 계산 로직 ---
+    const getNightOverlapSeconds = (startMs, endMs) => {
+        const start = new Date(startMs);
+        const end = new Date(endMs);
+        let overlapSec = 0;
+
+        // 시작 날짜와 종료 날짜를 구함 (날짜 경계 체크용)
+        const startDate = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+        const endDate = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+
+        // 수련 기간이 걸친 모든 날짜를 순회하며 심야 구간(00-06시) 확인
+        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+            // 해당 날짜의 심야 시작(00:00)과 종료(06:00) 시점 계산
+            const nightStart = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0).getTime();
+            const nightEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 6, 0, 0).getTime();
+
+            // 유저의 수련 구간(startMs ~ endMs)과 심야 구간(nightStart ~ nightEnd)의 겹치는 지점 추출
+            const actualOverlapStart = Math.max(startMs, nightStart);
+            const actualOverlapEnd = Math.min(endMs, nightEnd);
+
+            if (actualOverlapEnd > actualOverlapStart) {
+                overlapSec += (actualOverlapEnd - actualOverlapStart) / 1000;
+            }
         }
-    });
+        return Math.floor(overlapSec);
+    };
+
+    // 심야 구간에 머물렀던 총 시간(초) 계산
+    const nightActiveSeconds = getNightOverlapSeconds(startTimeMs, endTimeMs);
+
+    // 3. 통계 및 데이터 반영 여부 판단
+    let isSuccess = false;
+    let isNightSuccess = false;
+
+    // 최소 1분(60초) 이상 수련 시에만 의뢰 완료로 인정
+    if (totalElapsedSec >= 60) {
+        isSuccess = true;
+        state.statistics.quest.completed++; // 총 의뢰 완료 횟수 증가
+
+        // 심야 시간대에 1분(60초) 이상 머물렀다면 야행성 카운트 증가
+        if (nightActiveSeconds >= 60) {
+            isNightSuccess = true;
+            state.statistics.quest.nightOwl++;
+        }
+    }
+
+    // 4. 보상 지급 (실제 경과한 초를 기준으로 골드와 스탯 지급)
+    state.gold += totalElapsedSec;
+    if (ms) ms.seconds += totalElapsedSec;
+    if (q.subSkillId) { 
+        const ss = state.skills[q.subSkillId]; 
+        if (ss) ss.seconds += Math.floor(totalElapsedSec * 0.2); 
+    }
+    
+    // 누적 수련 시간 통계 업데이트
+    state.statistics.battle.totalSeconds += totalElapsedSec;
+
+    // 5. 알림 메시지 구성
+    let msg = `완료! (+${totalElapsedSec.toLocaleString()}G)`;
+    if (!isSuccess) {
+        msg = `수련 종료 (1분 미만은 의뢰 횟수로 인정되지 않습니다.)`;
+    } else if (isNightSuccess) {
+        const nightMin = Math.floor(nightActiveSeconds / 60);
+        msg += ` 🌙 심야 수련(${nightMin}분) 인정!`;
+    }
+
+    // 6. 전리품 드랍 체크 (game_data.js 기반)
+    if (typeof LOOT_TABLE !== 'undefined') {
+        LOOT_TABLE.forEach(loot => {
+            let conditionMet = true;
+            if (loot.condition && loot.condition.type === 'min_time' && totalElapsedSec < loot.condition.value) conditionMet = false;
+            if (conditionMet && Math.random() < loot.dropRate) {
+                const lootId = 'loot_' + Date.now() + Math.random();
+                state.inventory.push({
+                    id: lootId,
+                    type: 'loot',
+                    icon: loot.icon,
+                    name: loot.name,
+                    desc: loot.desc,
+                    folderId: null
+                });
+                msg += ` [${loot.name} 획득!]`;
+            }
+        });
+    }
+
+    // 7. 후처리
     showToast(msg);
-    sessionSec = 0; activeQuestId = null;
-    DataManager.save(state); updateGlobalUI(); 
+    sessionSec = 0; 
+    activeQuestId = null;
+    state.activeStartTime = null; // 시작 시간 기록 초기화
+
+    // 데이터 저장 및 UI 갱신
+    DataManager.save(state); 
+    updateGlobalUI(); 
     updateBattleUI('idle');
 };
 
