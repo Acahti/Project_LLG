@@ -5,15 +5,13 @@ let state = DataManager.load();
 let timer = null, sessionSec = 0, activeQuestId = null;
 let selectedCoreForCreate = null, editingSkillId = null, editingMasteryId = null, editingItemId = null;
 
-// [v10.9] 보관함 상태 관리 변수
 let invState = {
-    view: 'portal', // 'portal' or 'list'
-    category: null, // 'loot' or 'record'
-    folderId: null  // null(Root) or folderId
+    view: 'portal', 
+    category: null, 
+    folderId: null  
 };
 let editingFolderId = null; 
 
-// [v11.0] 기록용 색상 팔레트 및 아이콘 리스트
 const RECORD_COLORS = ['#FF5C5C', '#FF9F43', '#FFD700', '#6BCB77', '#4D96FF', '#9D84FF', '#FF85C0', '#777777'];
 const RECORD_ICONS = [
     'menu_book', 'edit', 'article', 'star', 'favorite', 'emoji_events', 
@@ -24,7 +22,6 @@ const RECORD_ICONS = [
 let selectedItemColor = RECORD_COLORS[0];
 let selectedItemIcon = RECORD_ICONS[0];
 
-// [초기화]
 if(!state.settings) state.settings = { theme: 'dark', fontSize: 12 };
 const initApp = () => {
     document.body.className = state.settings.theme + '-theme';
@@ -180,7 +177,6 @@ function renderQuest() {
     document.getElementById('empty-quest-msg').style.display = cnt===0?'block':'none';
 }
 
-// [v10.9 & v11.0] 보관함 로직
 window.enterCategory = (cat) => {
     invState.category = cat;
     invState.folderId = null;
@@ -282,23 +278,19 @@ function updateInvRender() {
     });
 }
 
-// [v11.1] 상세 모달 열기 로직 개선
 window.openItemDetailModal = (id) => {
     editingItemId = id;
     const item = state.inventory.find(i => i.id === id);
     
-    // 아이콘 & 이름 & 타입
     document.getElementById('detail-item-icon').innerText = item.icon;
     document.getElementById('detail-item-icon').style.color = item.type === 'record' ? 'var(--accent)' : 'var(--gold)';
     
     document.getElementById('detail-item-name').innerText = item.name;
     document.getElementById('detail-item-type').innerText = item.type === 'record' ? '기록물' : '전리품';
     
-    // 내용 (설명)
     const descBox = document.getElementById('detail-item-desc');
     descBox.innerText = item.desc || '(내용 없음)';
     
-    // 이동 옵션 (현재 카테고리의 폴더들 + 루트)
     const select = document.getElementById('detail-move-select');
     select.innerHTML = '<option value="">(최상위)</option>';
     const folders = state.folders.filter(f => f.type === invState.category);
@@ -307,7 +299,6 @@ window.openItemDetailModal = (id) => {
         select.innerHTML += `<option value="${f.id}" ${selected}>${f.name}</option>`;
     });
     
-    // 기록물이 아니면 수정/삭제 버튼 그룹 숨김 (공간 확보)
     const isRecord = item.type === 'record';
     const actionGroup = document.getElementById('record-only-actions');
     actionGroup.style.display = isRecord ? 'flex' : 'none';
@@ -321,7 +312,6 @@ window.openCreateItemModal = () => {
     document.getElementById('new-item-name').value = '';
     document.getElementById('new-item-desc').value = '';
     
-    // 팔레트 렌더링
     const palette = document.getElementById('new-item-color-picker');
     palette.innerHTML = '';
     selectedItemColor = RECORD_COLORS[0]; 
@@ -337,7 +327,6 @@ window.openCreateItemModal = () => {
         palette.appendChild(div);
     });
 
-    // 아이콘 그리드 렌더링
     const grid = document.getElementById('new-item-icon-picker');
     grid.innerHTML = '';
     selectedItemIcon = RECORD_ICONS[0];
@@ -507,18 +496,21 @@ function renderShop() {
         b.innerHTML += `<div class="card" style="display:flex;justify-content:space-between;align-items:center;"><span>${i.name}</span><div style="display:flex;gap:5px;"><button class="btn-shop btn-sm" onclick="buyItem('${i.id}', ${i.cost})">${i.cost}G</button><button class="btn-sm btn-danger" onclick="confirmDeleteShopItem('${i.id}')">🗑️</button></div></div>`;
     });
 }
+
+// [v11.2] 구매 로직 변경: Loot -> Record, 색상 Gold
 window.buyItem = (id, cost) => {
     if(state.gold >= cost) openConfirmModal("구매 확인", "정말 구매하시겠습니까?", () => { 
         state.gold -= cost; 
         state.inventory.push({
             id: 'buy_'+Date.now(),
-            type: 'loot', 
+            type: 'record',  // 변경됨: 기록으로 저장
             name: state.shopItems.find(x=>x.id===id).name,
             icon: 'shopping_bag',
+            color: '#FFD700', // 변경됨: 금색
             desc: '상점에서 구매함',
             folderId: null
         });
-        DataManager.save(state); updateGlobalUI(); renderShop(); showToast("구매 완료! 보관함을 확인하세요."); 
+        DataManager.save(state); updateGlobalUI(); renderShop(); showToast("구매 완료! 기록 보관소를 확인하세요."); 
     });
     else showToast("골드가 부족합니다.");
 };
