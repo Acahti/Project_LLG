@@ -46,7 +46,7 @@ export const DataManager = {
         const data = JSON.parse(json);
         if (!data.statistics) data.statistics = JSON.parse(JSON.stringify(DEFAULT_STATE.statistics));
         if (!data.cores) data.cores = JSON.parse(JSON.stringify(DEFAULT_STATE.cores));
-        if (!data.unlockedTitles) data.unlockedTitles = ["없음", "신입"];
+        if (!data.unlockedTitles) data.unlockedTitles = ["없음"];
         if (!data.unlockedJobs) data.unlockedJobs = ["무직"];
         return data;
     },
