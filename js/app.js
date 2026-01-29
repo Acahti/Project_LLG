@@ -160,7 +160,10 @@ function updateGlobalUI() {
 }
 
 /**
- * [v12.6] 스킬 리스트 렌더링 (경험치 퍼센트 표시 추가)
+ * [v12.7 업데이트] 
+ * - 스킬 목록을 카드(Card) 형태로 변경
+ * - 경험치바(Progress Bar) 추가
+ * - 수정 버튼 아이콘화 및 우측 상단 배치
  */
 function renderCharacter() {
     const list = document.getElementById('stats-list'); list.innerHTML = '';
@@ -177,16 +180,24 @@ function renderCharacter() {
             for(let sid in state.skills) {
                 const s = state.skills[sid]; if(s.mastery !== mid || s.hidden) continue;
                 
-                // --- [v12.6 핵심] 경험치 퍼센트 계산 (3600초 = 100%) ---
+                // 경험치 계산 (1시간 = 1레벨)
                 const skillLevel = Math.floor(s.seconds / 3600);
                 const skillExpPercent = ((s.seconds % 3600) / 3600 * 100).toFixed(1);
                 
+                // [변경] 카드형 UI + 게이지 바 적용
                 sh += `
-                <div class="skill-row">
-                    <div style="flex:1; font-size:0.9em;">
-                        - ${s.name} <span style="color:var(--accent); font-size:0.85em;">(Lv.${skillLevel}, ${skillExpPercent}%)</span>
+                <div class="skill-card">
+                    <div class="skill-header-row">
+                        <span class="skill-name">${s.name}</span>
+                        <div style="display:flex; align-items:center; gap:8px; margin-right: 25px;">
+                            <span class="skill-lv-badge">Lv.${skillLevel}</span>
+                        </div>
+                        <button class="btn-skill-edit" onclick="openEditSkillModal('${sid}')">✎</button>
                     </div>
-                    <button class="btn-edit" onclick="openEditSkillModal('${sid}')">✎</button>
+                    <div class="skill-progress-track">
+                        <div class="skill-progress-fill" style="width: ${skillExpPercent}%"></div>
+                        <div class="skill-percent-text">${skillExpPercent}%</div>
+                    </div>
                 </div>`;
             }
             if(sh || true) {
