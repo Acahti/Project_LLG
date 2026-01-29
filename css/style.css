@@ -85,7 +85,9 @@ nav {
 .stat-item { background: var(--bg-panel); border: 1px solid var(--border); margin-bottom: 5px; border-radius: 4px; }
 .stat-header { padding: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: rgba(128,128,128,0.1); }
 .stat-detail { padding: 10px; border-top: 1px solid var(--border); background: rgba(0,0,0,0.02); }
-.mastery-header { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px dashed var(--border); }
+
+/* 마스터리 헤더 디자인 */
+.mastery-header { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; margin-bottom: 8px; padding: 8px 10px; border-bottom: 1px dashed var(--border); background: rgba(255,255,255,0.03); border-radius: 4px; }
 .mastery-title { font-weight: bold; color: var(--text); }
 
 .quest-card { display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--accent); }
@@ -209,28 +211,31 @@ button:active { transform: translateY(2px); border-bottom-width: 2px; }
 }
 
 /* =========================================
-   [New] RPG 스킬 카드 디자인
+   [New] RPG 스킬 카드 디자인 (Flex Fix)
    ========================================= */
 .skill-card {
     background: rgba(30, 30, 36, 0.6);
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 12px;
+    padding: 12px 15px; /* 좌우 여백 확보 */
     margin-bottom: 10px;
-    position: relative;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
     transition: transform 0.1s;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .skill-card:active {
-    transform: scale(0.98);
+    transform: scale(0.99);
 }
 
+/* 헤더 행: 좌(이름) vs 우(레벨+버튼) 정렬 */
 .skill-header-row {
     display: flex;
-    justify-content: space-between;
+    justify-content: space-between; /* 양 끝 배치 */
     align-items: center;
-    margin-bottom: 8px;
+    width: 100%;
 }
 
 .skill-name {
@@ -240,13 +245,21 @@ button:active { transform: translateY(2px); border-bottom-width: 2px; }
     text-shadow: 1px 1px 0 rgba(0,0,0,0.5);
 }
 
+/* 우측 정보 그룹 */
+.skill-meta-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 .skill-lv-badge {
     font-size: 0.9em;
     color: var(--gold);
     background: rgba(0, 0, 0, 0.3);
-    padding: 2px 6px;
+    padding: 2px 8px;
     border-radius: 4px;
     border: 1px solid rgba(255, 215, 0, 0.3);
+    font-family: 'DungGeunMo', monospace;
 }
 
 .skill-progress-track {
@@ -280,21 +293,24 @@ button:active { transform: translateY(2px); border-bottom-width: 2px; }
     line-height: 1;
 }
 
+/* 수정 버튼 (위치 고정 해제 -> Flex 배치) */
 .btn-skill-edit {
     background: none;
     border: none;
     color: #666;
     cursor: pointer;
     padding: 4px;
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    font-size: 1.2em;
-    z-index: 10;
-    opacity: 0.7;
+    font-size: 1.1em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: color 0.2s, background 0.2s;
+    margin: 0;
+    width: auto;
 }
 
 .btn-skill-edit:hover {
     color: var(--accent);
-    opacity: 1;
+    background: rgba(255, 255, 255, 0.05);
 }
