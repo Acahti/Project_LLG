@@ -19,10 +19,12 @@ body.light-theme {
     --btn-sec-text: #555;
 }
 
-* { box-sizing: border-box; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 body {
-    background: var(--bg-dark); color: var(--text);
+    /* [수정] 상단바(Safe Area) 색상을 헤더와 맞추기 위해 bg-panel 사용 */
+    background: var(--bg-panel); 
+    color: var(--text);
     font-family: 'DungGeunMo', sans-serif;
     margin: 0; padding: 0;
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -31,11 +33,19 @@ body {
     display: flex; flex-direction: column;
     user-select: none; font-size: var(--base-font);
     transition: background 0.3s, color 0.3s;
-    line-height: 1.4;
 }
 
 .flex-center { display: flex; align-items: center; justify-content: center; gap: 5px; }
-main { flex: 1; overflow-y: auto; padding: 15px; padding-bottom: 80px; -webkit-overflow-scrolling: touch; }
+
+main { 
+    flex: 1; 
+    overflow-y: auto; 
+    /* [수정] 본문 배경색을 여기서 지정 */
+    background: var(--bg-dark);
+    padding: 15px; 
+    padding-bottom: 80px; 
+    -webkit-overflow-scrolling: touch; 
+}
 
 header { 
     height: 55px; background: var(--bg-panel); 
@@ -47,6 +57,7 @@ header {
 .header-right { display: flex; flex-direction: row; align-items: center; gap: 15px; }
 .header-job-title { font-size: 0.8em; color: var(--accent); }
 .header-job-name { font-size: 1.2em; color: var(--text); }
+
 .icon-btn { background: none; border: none; color: #888; cursor: pointer; padding: 5px; width: auto; border-bottom: none; margin: 0; display:flex; align-items:center; }
 
 nav { 
@@ -172,33 +183,31 @@ button:active { transform: translateY(2px); border-bottom-width: 2px; }
 .mini-select { padding: 6px; font-size: 0.9em; background: var(--bg-dark); color: var(--text); border: 1px solid var(--border); border-radius: 4px; flex: 1; }
 #modal-item-detail .modal-content { height: 70vh; max-height: 600px; }
 
-/* [v12.2] 활동 로그 섹션 스타일 */
-.log-separator {
-    display: flex;
-    align-items: center;
-    margin: 20px 0 10px 0;
-    color: #555;
-    font-size: 0.8em;
-}
-.log-separator::before, .log-separator::after {
-    content: "";
-    flex: 1;
-    height: 1px;
-    background: #333;
-    margin: 0 10px;
-}
+/* 로그 섹션 스타일 */
+.log-separator { display: flex; align-items: center; margin: 20px 0 10px 0; color: #555; font-size: 0.8em; }
+.log-separator::before, .log-separator::after { content: ""; flex: 1; height: 1px; background: #333; margin: 0 10px; }
+.log-item { border: 1px dashed var(--accent) !important; background: rgba(77, 150, 255, 0.05) !important; margin-top: 10px; }
+.log-item:active { background: rgba(77, 150, 255, 0.15) !important; }
+#stats-log-list .list-item span:last-child { font-family: 'Press Start 2P', cursive; font-size: 0.8em; }
 
-.log-item {
-    border: 1px dashed var(--accent) !important;
-    background: rgba(77, 150, 255, 0.05) !important;
-    margin-top: 10px;
-}
-.log-item:active {
-    background: rgba(77, 150, 255, 0.15) !important;
-}
-
-/* 통계 모달 내 강조 수치 */
-#stats-log-list .list-item span:last-child {
-    font-family: 'Press Start 2P', cursive;
-    font-size: 0.8em;
+/* [수정] 누락된 PC 화면 대응 코드 추가 */
+@media (min-width: 768px) {
+    body {
+        max-width: 420px;
+        height: 90vh;
+        margin: 5vh auto; /* PC 화면 중앙 정렬 */
+        border: 8px solid #333;
+        border-radius: 20px;
+        box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        position: relative; /* fixed 해제 및 상대 위치 */
+    }
+    nav {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        border-radius: 0 0 12px 12px;
+    }
+    main {
+        padding-bottom: 70px;
+    }
 }
