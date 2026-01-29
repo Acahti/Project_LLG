@@ -350,3 +350,4 @@ function updateBattleUI(mode) {
 }
 
 document.querySelectorAll('.nav-btn').forEach(b => b.onclick = () => switchTab(b.dataset.target));
+initApp();
