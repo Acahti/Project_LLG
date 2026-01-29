@@ -15,9 +15,28 @@ const RECORD_ICONS = ['menu_book', 'edit', 'article', 'star', 'favorite', 'emoji
 let selectedItemColor = RECORD_COLORS[0];
 let selectedItemIcon = RECORD_ICONS[0];
 
-if(!state.settings) state.settings = { theme: 'dark', fontSize: 12 };
+// [Safety] 데이터 무결성 검사 및 초기화 (오류 방지 핵심 로직)
+const sanitizeState = (s) => {
+    if (!s.settings) s.settings = { theme: 'dark', fontSize: 12 };
+    if (!s.unlockedTitles) s.unlockedTitles = ['없음'];
+    if (!s.unlockedJobs) s.unlockedJobs = ['무직'];
+    if (!s.statistics) s.statistics = { 
+        quest: { completed: 0, nightOwl: 0 }, 
+        battle: { totalSeconds: 0 }, 
+        shop: { purchases: 0, goldSpent: 0 } 
+    };
+    // 깊은 객체 보호 (기존 데이터에 일부 키가 없을 경우 대비)
+    if (!s.statistics.quest) s.statistics.quest = { completed: 0, nightOwl: 0 };
+    if (!s.statistics.battle) s.statistics.battle = { totalSeconds: 0 };
+    if (!s.statistics.shop) s.statistics.shop = { purchases: 0, goldSpent: 0 };
+    
+    // 기본값 설정
+    if (!s.currentTitle) s.currentTitle = '없음';
+    if (!s.currentJob) s.currentJob = '무직';
+};
 
 const initApp = () => {
+    sanitizeState(state); // [Fix] 데이터 안정화 실행
     document.body.className = state.settings.theme + '-theme';
     document.documentElement.style.setProperty('--base-font', state.settings.fontSize + 'px');
     document.getElementById('current-font-size').innerText = state.settings.fontSize;
@@ -69,7 +88,7 @@ const bindDataEvents = () => {
     document.getElementById('btn-import').onclick = () => document.getElementById('file-input').click();
     document.getElementById('file-input').onchange = (e) => {
         const r = new FileReader();
-        r.onload = (v) => { try { state = JSON.parse(v.target.result); DataManager.save(state); location.reload(); } catch { showToast("파일 형식이 올바르지 않습니다."); } };
+        r.onload = (v) => { try { state = JSON.parse(v.target.result); sanitizeState(state); DataManager.save(state); location.reload(); } catch { showToast("파일 형식이 올바르지 않습니다."); } };
         if(e.target.files.length) r.readAsText(e.target.files[0]);
     };
 };
@@ -88,9 +107,12 @@ window.openStatisticsModal = () => {
     const list = document.getElementById('stats-log-list');
     if (!list) return;
     list.innerHTML = '';
-    const stats = state.statistics || { quest: { completed: 0, nightOwl: 0 }, battle: { totalSeconds: 0 }, shop: { purchases: 0, goldSpent: 0 } };
+    
+    // [Safety] 통계 데이터 안전 접근
+    const stats = state.statistics;
     const h = Math.floor(stats.battle.totalSeconds / 3600);
     const m = Math.floor((stats.battle.totalSeconds % 3600) / 60);
+    
     const logData = [
         { label: "📜 총 의뢰 완료", value: `${stats.quest.completed}회` },
         { label: "🌙 심야 수련(00-06)", value: `${stats.quest.nightOwl}회` },
@@ -155,9 +177,12 @@ function updateGlobalUI() {
     document.getElementById('header-job-title').innerText = `<${state.currentTitle}>`;
     document.getElementById('header-job-name').innerText = state.currentJob;
     document.getElementById('chart-total-level').innerText = `Lv.${tl}`;
-    AchievementManager.checkAll(state, window.showToast) {
+    
+    // [Fix] 치명적 문법 오류 수정 (if문 추가)
+    if (AchievementManager.checkAll(state, window.showToast)) {
         DataManager.save(state);
-    };
+    }
+    
     drawRadarChart();
 }
 
@@ -269,6 +294,12 @@ window.deleteItemAction = () => { closeModal('modal-item-detail'); openConfirmMo
 function renderShop() { const b = document.getElementById('shop-container'); b.innerHTML = ''; state.shopItems.forEach(i => { b.innerHTML += `<div class="card" style="display:flex;justify-content:space-between;align-items:center;"><span>${i.name}</span><div style="display:flex;gap:5px;"><button class="btn-shop btn-sm" onclick="buyItem('${i.id}', ${i.cost})">${i.cost}G</button><button class="btn-sm btn-danger" onclick="confirmDeleteShopItem('${i.id}')">🗑️</button></div></div>`; }); }
 
 window.buyItem = (id, cost) => {
+    // [Safety] statistics 존재 여부 확인
+    if (!state.statistics || !state.statistics.shop) {
+        state.statistics = state.statistics || {};
+        state.statistics.shop = { purchases: 0, goldSpent: 0 };
+    }
+
     if(state.gold >= cost) {
         openConfirmModal("구매 확인", "정말 구매하시겠습니까?", () => { 
             state.gold -= cost; 
@@ -290,10 +321,8 @@ window.saveMasteryEdit = () => {
 
     if(!n) return showToast("이름을 입력해주세요.");
 
-    // [Fix] 수정 시 중복 검사 로직 추가
-    // 조건: "내 자신(editingMasteryId)"이 아니면서, "이름"과 "타겟 스탯"이 모두 같은 마스터리가 있는가?
     const isDuplicate = Object.keys(state.masteries).some(mid => 
-        mid !== editingMasteryId && // 자기 자신은 제외
+        mid !== editingMasteryId && 
         state.masteries[mid].name === n && 
         state.masteries[mid].core === targetCore
     );
@@ -315,31 +344,25 @@ window.deleteMasteryEdit = () => { openConfirmModal("마스터리 삭제", "이 
 window.openTitleModal=()=>{document.getElementById('modal-title').style.display='flex';switchTitleTab('title');};
 
 window.switchTitleTab = (t) => {
-    // 1. 탭 버튼 활성화 스타일 처리
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById(`tab-btn-${t}`).classList.add('active');
     
-    // 2. 리스트 컨테이너 비우기
     const l = document.getElementById('title-list-container');
     l.innerHTML = '';
     
-    // 3. 현재 탭에 맞는 데이터 준비 (칭호 vs 직업)
     const unlockList = t === 'title' ? state.unlockedTitles : state.unlockedJobs;
     const currentEquip = t === 'title' ? state.currentTitle : state.currentJob;
-    const refData = t === 'title' ? TITLE_DATA : JOB_DATA; // 설명(desc)을 찾기 위한 원본 데이터
+    const refData = t === 'title' ? TITLE_DATA : JOB_DATA; 
 
     if (unlockList.length === 0) {
         l.innerHTML = '<div style="padding:15px; text-align:center; color:#888;">획득한 목록이 없습니다.</div>';
         return;
     }
 
-    // 4. 리스트 생성 (이름 + 설명 출력)
     unlockList.forEach(name => {
         const cls = currentEquip === name ? 'active' : '';
-        
-        // 원본 데이터에서 설명(desc) 찾기
         const info = refData.find(d => d.name === name);
-        const descText = info ? info.desc : ''; // 데이터가 없으면 빈칸
+        const descText = info ? info.desc : ''; 
 
         l.innerHTML += `
         <div class="list-item ${cls}" onclick="equip${t === 'title' ? 'Title' : 'Job'}('${name}')">
@@ -354,7 +377,6 @@ window.switchTitleTab = (t) => {
 window.equipTitle=(t)=>{state.currentTitle=t;DataManager.save(state);updateGlobalUI();switchTitleTab('title');showToast(`칭호가 [${t}](으)로 변경되었습니다.`);};
 window.equipJob=(j)=>{state.currentJob=j;DataManager.save(state);updateGlobalUI();switchTitleTab('job');showToast(`직업이 [${j}](으)로 변경되었습니다.`);};
 
-// [Fix] 스킬/마스터리 중복 생성 방지 로직 추가
 window.openSkillCreateModal=()=>{
     document.getElementById('modal-create-skill').style.display='flex';
     selectedCoreForCreate = null; 
@@ -384,7 +406,6 @@ window.createSkillAction = () => {
 
     if (m === 'NEW') {
         if (!mi) return showToast("새로운 마스터리 이름을 입력해주세요.");
-        // [Fix] 마스터리 이름 중복 검사
         const masteryExists = Object.values(state.masteries).some(mastery => mastery.name === mi && mastery.core === selectedCoreForCreate);
         if (masteryExists) return showToast("이미 존재하는 마스터리 이름입니다.");
         m = 'm' + Date.now();
@@ -392,7 +413,6 @@ window.createSkillAction = () => {
     }
     
     if (!sn) return showToast("스킬 이름을 입력해주세요.");
-    // [Fix] 스킬 이름 중복 검사 (같은 마스터리 내에서)
     const skillExists = Object.values(state.skills).some(skill => skill.name === sn && skill.mastery === m && !skill.hidden);
     if (skillExists) return showToast("이미 존재하는 스킬 이름입니다.");
 
@@ -460,6 +480,11 @@ window.stopBattleAction = () => {
 
     const nightActiveSeconds = getNightOverlapSeconds(startTimeMs, endTimeMs);
     let isSuccess = false, isNightSuccess = false;
+
+    // [Safety] statistics 객체 및 하위 키 보장
+    if (!state.statistics) state.statistics = {};
+    if (!state.statistics.quest) state.statistics.quest = { completed: 0, nightOwl: 0 };
+    if (!state.statistics.battle) state.statistics.battle = { totalSeconds: 0 };
 
     if (totalElapsedSec >= 60) {
         isSuccess = true; state.statistics.quest.completed++;
