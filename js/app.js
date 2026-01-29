@@ -159,87 +159,49 @@ function updateGlobalUI() {
     drawRadarChart();
 }
 
+/**
+ * [v12.6] 스킬 리스트 렌더링 (경험치 퍼센트 표시 추가)
+ */
 function renderCharacter() {
     const list = document.getElementById('stats-list'); list.innerHTML = '';
-    ['STR','DEX','INT','WIS','VIT'].forEach(cid => {
-        const c = state.cores[cid];
-        const d = document.createElement('div'); d.className = 'stat-item';
-        d.innerHTML = `<div class="stat-header" onclick="toggleStat('${cid}')"><span style="color:${c.color}">● ${c.name}</span><span>Lv.${c.level} ▼</span></div><div id="detail-${cid}" class="stat-detail" style="display:none;"></div>`;
-        list.appendChild(d);
-        const box = d.querySelector(`#detail-${cid}`);
-        let has = false;
-        for(let mid in state.masteries) {
-            const m = state.masteries[mid]; if(m.core !== cid) continue;
-            let sh = '';
+@@ -177,20 +177,30 @@
             for(let sid in state.skills) {
                 const s = state.skills[sid]; if(s.mastery !== mid || s.hidden) continue;
+
+                // --- [v12.6 핵심] 경험치 퍼센트 계산 (3600초 = 100%) ---
                 const skillLevel = Math.floor(s.seconds / 3600);
                 const skillExpPercent = ((s.seconds % 3600) / 3600 * 100).toFixed(1);
-                sh += `<div class="skill-row"><div style="flex:1; font-size:0.9em;">- ${s.name} <span style="color:var(--accent); font-size:0.85em;">(Lv.${skillLevel}, ${skillExpPercent}%)</span></div><button class="btn-edit" onclick="openEditSkillModal('${sid}')">✎</button></div>`;
+
+
+                sh += `
+                <div class="skill-row">
+                    <div style="flex:1; font-size:0.9em;">
+                        - ${s.name} <span style="color:var(--accent); font-size:0.85em;">(Lv.${skillLevel}, ${skillExpPercent}%)</span>
+
+
+
+
+
+
+
+
+
+
+
+                    </div>
+                    <button class="btn-edit" onclick="openEditSkillModal('${sid}')">✎</button>
+                </div>`;
             }
             if(sh || true) {
                 box.innerHTML += `<div class="mastery-header"><span class="mastery-title">${m.name} (Lv.${m.level})</span><button class="btn-edit" onclick="openEditMasteryModal('${mid}')">✎</button></div>${sh || '<div style="font-size:0.8em;color:#555;padding:5px;">스킬 없음</div>'}`;
                 has = true;
             }
         }
-        if(!has) box.innerHTML = '<div style="font-size:0.8em;color:#555;padding:10px;">데이터 없음</div>';
-    });
-}
-window.toggleStat = (id) => { const e = document.getElementById(`detail-${id}`); e.style.display = e.style.display==='none'?'block':'none'; };
-
-function renderQuest() {
-    const c = document.getElementById('quest-container'); c.innerHTML = ''; let cnt = 0;
-    for(let qid in state.quests) {
-        const q = state.quests[qid]; const ms = state.skills[q.mainSkillId]; if(!ms || ms.hidden) continue;
-        let sub = ''; if(q.subSkillId) { const ss = state.skills[q.subSkillId]; if(ss && !ss.hidden) sub = `<div style="margin-top:4px;"><span class="quest-tag tag-sub">Bonus (20%)</span> ${ss.name}</div>`; }
-        cnt++;
-        c.innerHTML += `<div class="card quest-card"><div class="quest-info"><div class="quest-title">${q.name}</div><div class="quest-sub"><div><span class="quest-tag tag-main">Main (100%)</span> ${ms.name}</div>${sub}</div></div><div style="display:flex;gap:5px;"><button class="btn-sm btn-primary" onclick="startBattle('${qid}')">수락</button><button class="btn-sm" style="background:#333;color:#888;" onclick="confirmDeleteQuest('${qid}')">삭제</button></div></div>`;
-    }
-    document.getElementById('empty-quest-msg').style.display = cnt===0?'block':'none';
-}
-
-window.enterCategory = (cat) => { invState.category = cat; invState.folderId = null; invState.view = 'list'; updateInvRender(); };
-window.invGoBack = () => { if (invState.folderId) { invState.folderId = null; } else { invState.view = 'portal'; invState.category = null; } updateInvRender(); };
-window.enterFolder = (fid) => { invState.folderId = fid; updateInvRender(); };
-
-function updateInvRender() {
-    const portal = document.getElementById('inv-portal-view');
-    const list = document.getElementById('inv-list-view');
-    if (invState.view === 'portal') { portal.style.display = 'flex'; list.style.display = 'none'; return; }
-    portal.style.display = 'none'; list.style.display = 'block';
-    const catName = invState.category === 'loot' ? '전리품 도감' : '기록 보관소';
-    let folderName = '최상위';
-    if (invState.folderId) { const f = state.folders.find(x => x.id === invState.folderId); if(f) folderName = f.name; }
-    document.getElementById('inv-current-path').innerText = `${catName} > ${folderName}`;
-    const bar = document.getElementById('inv-action-bar'); bar.innerHTML = '';
-    if (!invState.folderId) bar.innerHTML += `<div class="chip" onclick="openCreateFolderModal()"><span class="material-icons-round" style="font-size:12px; vertical-align:middle;">create_new_folder</span> 폴더</div>`;
-    if (invState.category === 'record') bar.innerHTML += `<div class="chip active" onclick="openCreateItemModal()"><span class="material-icons-round" style="font-size:12px; vertical-align:middle;">add</span> 기록</div>`;
-    if (invState.folderId) bar.innerHTML += `<div class="chip" onclick="openEditFolderModal('${invState.folderId}')"><span class="material-icons-round" style="font-size:12px; vertical-align:middle;">settings</span> 관리</div>`;
-    const g = document.getElementById('inventory-grid'); g.innerHTML = '';
-    if (!invState.folderId) {
-        const folders = state.folders.filter(f => f.type === invState.category);
-        folders.forEach(f => {
-            const count = state.inventory.filter(i => (i.type === invState.category || (invState.category==='record'?i.type==='record':i.type!=='record')) && i.folderId === f.id).length;
-            g.innerHTML += `<div class="folder-item" onclick="enterFolder('${f.id}')"><div class="folder-icon-box"><span class="material-icons-round" style="font-size:2em;">folder</span><span class="folder-badge">${count}</span></div><div class="folder-name">${f.name}</div></div>`;
-        });
-    }
-    const items = state.inventory.filter(i => {
-        const isRecord = i.type === 'record'; const targetCat = invState.category === 'record';
-        if (targetCat !== isRecord) return false;
-        if (invState.folderId) return i.folderId === invState.folderId; return !i.folderId; 
-    });
-    if (items.length === 0 && (!invState.folderId ? state.folders.filter(f => f.type === invState.category).length === 0 : true)) { g.innerHTML += `<div style="grid-column:1/-1;text-align:center;color:#555;padding:20px;">비어있음</div>`; }
-    items.forEach(i => {
-        const bg = i.type === 'record' ? (i.color || '#4D96FF') : (i.color || 'transparent');
-        const iconColor = i.type === 'record' ? '#fff' : (i.type==='loot' ? 'var(--gold)' : '#fff');
-        const frameClass = i.type === 'record' ? 'type-record' : 'type-loot';
-        g.innerHTML += `<div class="inv-item-container" onclick="openItemDetailModal('${i.id}')"><div class="inv-icon-frame ${frameClass}" style="background:${bg}"><span class="material-icons-round" style="font-size:2em; color:${iconColor}">${i.icon}</span></div><div class="inv-item-name">${i.name}</div></div>`;
-    });
-}
+@@ -251,153 +261,153 @@
 
 window.openItemDetailModal = (id) => { editingItemId = id; const item = state.inventory.find(i => i.id === id); document.getElementById('detail-item-icon').innerText = item.icon; document.getElementById('detail-item-icon').style.color = item.type === 'record' ? 'var(--accent)' : 'var(--gold)'; document.getElementById('detail-item-name').innerText = item.name; document.getElementById('detail-item-type').innerText = item.type === 'record' ? '기록물' : '전리품'; document.getElementById('detail-item-desc').innerText = item.desc || '(내용 없음)'; const select = document.getElementById('detail-move-select'); select.innerHTML = '<option value="">(최상위)</option>'; const folders = state.folders.filter(f => f.type === invState.category); folders.forEach(f => { const selected = item.folderId === f.id ? 'selected' : ''; select.innerHTML += `<option value="${f.id}" ${selected}>${f.name}</option>`; }); const isRecord = item.type === 'record'; const actionGroup = document.getElementById('record-only-actions'); actionGroup.style.display = isRecord ? 'flex' : 'none'; document.getElementById('modal-item-detail').style.display = 'flex'; };
 window.openCreateItemModal = () => { editingItemId = null; document.querySelector('#modal-create-item h3').innerText = "새로운 기록"; document.getElementById('new-item-name').value = ''; document.getElementById('new-item-desc').value = ''; const palette = document.getElementById('new-item-color-picker'); palette.innerHTML = ''; selectedItemColor = RECORD_COLORS[0]; RECORD_COLORS.forEach(c => { const div = document.createElement('div'); div.className = `color-option ${c===selectedItemColor?'selected':''}`; div.style.backgroundColor = c; div.onclick = () => { selectedItemColor = c; document.querySelectorAll('.color-option').forEach(e => e.classList.remove('selected')); div.classList.add('selected'); }; palette.appendChild(div); }); const grid = document.getElementById('new-item-icon-picker'); grid.innerHTML = ''; selectedItemIcon = RECORD_ICONS[0]; RECORD_ICONS.forEach(ic => { const div = document.createElement('div'); div.className = `icon-option ${ic===selectedItemIcon?'selected':''}`; div.innerHTML = `<span class="material-icons-round">${ic}</span>`; div.onclick = () => { selectedItemIcon = ic; document.querySelectorAll('.icon-option').forEach(e => e.classList.remove('selected')); div.classList.add('selected'); }; grid.appendChild(div); }); document.getElementById('modal-create-item').style.display='flex'; };
-window.openEditItemMode = () => { closeModal('modal-item-detail'); const i = state.inventory.find(x => x.id === editingItemId); document.querySelector('#modal-create-item h3').innerText = "기록 수정"; document.getElementById('new-item-name').value = i.name; document.getElementById('new-item-desc').value = i.desc; selectedItemColor = i.color || RECORD_COLORS[0]; const palette = document.getElementById('new-item-color-picker'); palette.innerHTML = ''; RECORD_COLORS.forEach(c => { const div = document.createElement('div'); div.className = `color-option ${c===selectedItemColor?'selected':''}`; div.style.backgroundColor = c; div.onclick = () => { selectedItemColor = c; renderPaletteSelection(); }; palette.appendChild(div); }); function renderPaletteSelection(){ document.querySelectorAll('.color-option').forEach(e => { e.classList.toggle('selected', e.style.backgroundColor === selectedItemColor || e.style.backgroundColor.replace(/\s/g, '') === 'rgb('+hexToRgb(selectedItemColor)+')'); }); } selectedItemIcon = i.icon || RECORD_ICONS[0]; const grid = document.getElementById('new-item-icon-picker'); grid.innerHTML = ''; RECORD_ICONS.forEach(ic => { const div = document.createElement('div'); div.className = `icon-option ${ic===selectedItemIcon?'selected':''}`; div.innerHTML = `<span class="material-icons-round">${ic}</span>`; div.onclick = () => { selectedItemIcon = ic; renderIconSelection(); }; grid.appendChild(div); }); function renderIconSelection() { document.querySelectorAll('.icon-option').forEach(e => { e.classList.toggle('selected', e.innerText === selectedItemIcon); }); } function hexToRgb(hex) { var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex); return result ? `${parseInt(result[1], 16)},${parseInt(result[2], 16)},${parseInt(result[3], 16)}` : null; } document.getElementById('modal-create-item').style.display='flex'; };
+window.openEditItemMode = () => { closeModal('modal-item-detail'); const i = state.inventory.find(x => x.id === editingItemId); document.querySelector('#modal-create-item h3').innerText = "기록 수정"; document.getElementById('new-item-name').value = i.name; document.getElementById('new-item-desc').value = i.desc; selectedItemColor = i.color || RECORD_COLORS[0]; const palette = document.getElementById('new-item-color-picker'); palette.innerHTML = ''; RECORD_COLORS.forEach(c => { const div = document.createElement('div'); div.className = `color-option ${c===selectedItemColor?'selected':''}`; div.style.backgroundColor = c; div.onclick = () => { selectedItemColor = c; renderPaletteSelection(); }; palette.appendChild(div); }); function renderPaletteSelection(){ document.querySelectorAll('.color-option').forEach(e => { e.classList.toggle('selected', e.style.backgroundColor === selectedItemColor || e.style.backgroundColor.replace(/\s/g, '') === 'rgb('+hexToRgb(selectedItemColor)+')'); }); } selectedItemIcon = i.icon || RECORD_ICONS[0]; const grid = document.getElementById('new-item-icon-picker'); grid.innerHTML = ''; RECORD_ICONS.forEach(ic => { const div = document.createElement('div'); div.className = `icon-option ${ic===selectedItemIcon?'selected':''}`; div.innerHTML = `<span class="material-icons-round">${ic}</span>`; div.onclick = () => { selectedItemIcon = ic; document.querySelectorAll('.icon-option').forEach(e => e.classList.remove('selected')); div.classList.add('selected'); }; grid.appendChild(div); }); function renderIconSelection() { document.querySelectorAll('.icon-option').forEach(e => { e.classList.toggle('selected', e.innerText === selectedItemIcon); }); } function hexToRgb(hex) { var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex); return result ? `${parseInt(result[1], 16)},${parseInt(result[2], 16)},${parseInt(result[3], 16)}` : null; } document.getElementById('modal-create-item').style.display='flex'; };
 window.createItemAction = () => { const n = document.getElementById('new-item-name').value.trim(); const d = document.getElementById('new-item-desc').value; if(!n) return showToast("이름을 입력해주세요."); if(editingItemId) { const item = state.inventory.find(x => x.id === editingItemId); item.name = n; item.desc = d; item.icon = selectedItemIcon; item.color = selectedItemColor; showToast("수정되었습니다."); } else { state.inventory.push({ id: 'r'+Date.now(), type: 'record', icon: selectedItemIcon, color: selectedItemColor, name: n, desc: d||'', folderId: invState.folderId }); showToast("기록되었습니다."); } DataManager.save(state); updateInvRender(); closeModal('modal-create-item'); };
 window.openCreateFolderModal = () => { editingFolderId = null; document.getElementById('folder-modal-title').innerText = "폴더 생성"; document.getElementById('input-folder-name').value = ""; document.getElementById('folder-delete-zone').style.display = 'none'; document.getElementById('modal-folder-manager').style.display = 'flex'; };
 window.openEditFolderModal = (fid) => { editingFolderId = fid; const f = state.folders.find(x => x.id === fid); document.getElementById('folder-modal-title').innerText = "폴더 관리"; document.getElementById('input-folder-name').value = f.name; document.getElementById('folder-delete-zone').style.display = 'block'; document.getElementById('modal-folder-manager').style.display = 'flex'; };
@@ -371,7 +333,8 @@ function updateBattleUI(mode) {
         const q = state.quests[activeQuestId];
         title.innerText = q ? q.name : '알 수 없는 의뢰';
         const renderTimer = () => {
-            const elapsed = Math.floor((Date.now() - state.activeStartTime) / 1000);
+            const curNow = Date.now();
+            const elapsed = Math.floor((curNow - state.activeStartTime) / 1000);
             const m = Math.floor(elapsed / 60).toString().padStart(2, '0');
             const s = (elapsed % 60).toString().padStart(2, '0');
             timerText.innerText = `00:${m}:${s}`;
@@ -387,4 +350,3 @@ function updateBattleUI(mode) {
 }
 
 document.querySelectorAll('.nav-btn').forEach(b => b.onclick = () => switchTab(b.dataset.target));
-initApp();
