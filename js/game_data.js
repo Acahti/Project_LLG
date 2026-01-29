@@ -170,7 +170,7 @@ export const TITLE_DATA = [
 // 🛠️ JOB DATA (직업) - 총 250종+
 // =============================================================================
 export const JOB_DATA = [
-    { id: 'j_null', name: '백수', condition: null, desc: '무한한 가능성.' },
+    { id: 'j_null', name: '무직', condition: null, desc: '무한한 가능성.' },
 
     // =========================================================================
     // 1. 순수 스탯 계열 (STR, INT, DEX, VIT, WIS) - 각 20단계
