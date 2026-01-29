@@ -1,7 +1,7 @@
 import { DataManager } from './data.js';
 import { BattleManager } from './battle.js';
 import { AchievementManager } from './achievement.js';
-import { LOOT_TABLE } from './game_data.js';
+import { LOOT_TABLE, TITLE_DATA, JOB_DATA } from './game_data.js';
 
 let state = DataManager.load();
 let timer = null, sessionSec = 0, activeQuestId = null;
@@ -313,7 +313,44 @@ window.saveMasteryEdit = () => {
 };
 window.deleteMasteryEdit = () => { openConfirmModal("마스터리 삭제", "이 마스터리와 하위 스킬들이 모두 영구적으로 삭제됩니다.\n계속하시겠습니까?", () => { for(let s in state.skills) if(state.skills[s].mastery === editingMasteryId) delete state.skills[s]; delete state.masteries[editingMasteryId]; DataManager.save(state); updateGlobalUI(); renderCharacter(); renderQuest(); closeModal('modal-edit-mastery'); showToast("삭제되었습니다."); }); };
 window.openTitleModal=()=>{document.getElementById('modal-title').style.display='flex';switchTitleTab('title');};
-window.switchTitleTab=(t)=>{document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById(`tab-btn-${t}`).classList.add('active');const l=document.getElementById('title-list-container');l.innerHTML='';const it=t==='title'?state.unlockedTitles:state.unlockedJobs;const c=t==='title'?state.currentTitle:state.currentJob;if(it.length===0)l.innerHTML='<div style="padding:10px;color:#888;">목록이 없습니다.</div>';it.forEach(i=>{const cls=c===i?'active':'';l.innerHTML+=`<div class="list-item ${cls}" onclick="equip${t==='title'?'Title':'Job'}('${i}')"><span>${i}</span>${cls?'<span class="material-icons-round" style="font-size:14px;">check</span>':''}</div>`});};
+
+window.switchTitleTab = (t) => {
+    // 1. 탭 버튼 활성화 스타일 처리
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`tab-btn-${t}`).classList.add('active');
+    
+    // 2. 리스트 컨테이너 비우기
+    const l = document.getElementById('title-list-container');
+    l.innerHTML = '';
+    
+    // 3. 현재 탭에 맞는 데이터 준비 (칭호 vs 직업)
+    const unlockList = t === 'title' ? state.unlockedTitles : state.unlockedJobs;
+    const currentEquip = t === 'title' ? state.currentTitle : state.currentJob;
+    const refData = t === 'title' ? TITLE_DATA : JOB_DATA; // 설명(desc)을 찾기 위한 원본 데이터
+
+    if (unlockList.length === 0) {
+        l.innerHTML = '<div style="padding:15px; text-align:center; color:#888;">획득한 목록이 없습니다.</div>';
+        return;
+    }
+
+    // 4. 리스트 생성 (이름 + 설명 출력)
+    unlockList.forEach(name => {
+        const cls = currentEquip === name ? 'active' : '';
+        
+        // 원본 데이터에서 설명(desc) 찾기
+        const info = refData.find(d => d.name === name);
+        const descText = info ? info.desc : ''; // 데이터가 없으면 빈칸
+
+        l.innerHTML += `
+        <div class="list-item ${cls}" onclick="equip${t === 'title' ? 'Title' : 'Job'}('${name}')">
+            <div style="display:flex; flex-direction:column; gap:3px;">
+                <span style="font-weight:bold; font-size:1.1em;">${name}</span>
+                <span style="font-size:0.8em; color:#888;">${descText}</span>
+            </div>
+            ${cls ? '<span class="material-icons-round" style="color:var(--gold);">check_circle</span>' : ''}
+        </div>`;
+    });
+};
 window.equipTitle=(t)=>{state.currentTitle=t;DataManager.save(state);updateGlobalUI();switchTitleTab('title');showToast(`칭호가 [${t}](으)로 변경되었습니다.`);};
 window.equipJob=(j)=>{state.currentJob=j;DataManager.save(state);updateGlobalUI();switchTitleTab('job');showToast(`직업이 [${j}](으)로 변경되었습니다.`);};
 
