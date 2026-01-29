@@ -160,10 +160,8 @@ function updateGlobalUI() {
 }
 
 /**
- * [v12.7 업데이트] 
- * - 스킬 목록을 카드(Card) 형태로 변경
- * - 경험치바(Progress Bar) 추가
- * - 수정 버튼 아이콘화 및 우측 상단 배치
+ * [v12.8 Fix] 스킬 카드 레이아웃 정렬 수정
+ * - 이름(좌) vs 레벨+버튼(우) Flexbox로 깔끔하게 배치
  */
 function renderCharacter() {
     const list = document.getElementById('stats-list'); list.innerHTML = '';
@@ -180,19 +178,20 @@ function renderCharacter() {
             for(let sid in state.skills) {
                 const s = state.skills[sid]; if(s.mastery !== mid || s.hidden) continue;
                 
-                // 경험치 계산 (1시간 = 1레벨)
                 const skillLevel = Math.floor(s.seconds / 3600);
                 const skillExpPercent = ((s.seconds % 3600) / 3600 * 100).toFixed(1);
                 
-                // [변경] 카드형 UI + 게이지 바 적용
+                // [구조 변경] Flexbox를 활용한 정렬
                 sh += `
                 <div class="skill-card">
                     <div class="skill-header-row">
                         <span class="skill-name">${s.name}</span>
-                        <div style="display:flex; align-items:center; gap:8px; margin-right: 25px;">
+                        <div class="skill-meta-group">
                             <span class="skill-lv-badge">Lv.${skillLevel}</span>
+                            <button class="btn-skill-edit" onclick="openEditSkillModal('${sid}')">
+                                <span class="material-icons-round" style="font-size:16px;">edit</span>
+                            </button>
                         </div>
-                        <button class="btn-skill-edit" onclick="openEditSkillModal('${sid}')">✎</button>
                     </div>
                     <div class="skill-progress-track">
                         <div class="skill-progress-fill" style="width: ${skillExpPercent}%"></div>
