@@ -8,7 +8,11 @@
     --btn-sec-text: #aaa;
     --safe-top: env(safe-area-inset-top, 20px);
     --safe-bottom: env(safe-area-inset-bottom, 20px);
-    --base-font: 12px; 
+    --base-font: 12px;
+    
+    /* [New] 계층 구조용 배경색 변수 */
+    --bg-mastery-header: rgba(255, 255, 255, 0.03);
+    --bg-skill-card: rgba(40, 40, 45, 0.8);
 }
 
 body.light-theme {
@@ -17,6 +21,10 @@ body.light-theme {
     --accent: #0056b3; --gold: #b8860b;
     --btn-sec-bg: #e0e0e0;
     --btn-sec-text: #555;
+
+    /* [New] 라이트 테마 계층 구조 색상 개선 */
+    --bg-mastery-header: rgba(0, 0, 0, 0.03);
+    --bg-skill-card: #ffffff; /* 밝고 깨끗한 배경 */
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -82,13 +90,62 @@ nav {
 #stat-radar { max-width: 100%; height: auto; }
 .chart-level { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2em; color: var(--gold); text-shadow: 2px 2px 0 rgba(0,0,0,0.5); pointer-events: none; }
 
-.stat-item { background: var(--bg-panel); border: 1px solid var(--border); margin-bottom: 5px; border-radius: 4px; }
-.stat-header { padding: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: rgba(128,128,128,0.1); }
-.stat-detail { padding: 10px; border-top: 1px solid var(--border); background: rgba(0,0,0,0.02); }
+/* =========================================
+   [Fix] 계층 구조 가독성 개선 (스탯 > 마스터리 > 스킬)
+   ========================================= */
 
-/* 마스터리 헤더 디자인 */
-.mastery-header { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; margin-bottom: 8px; padding: 8px 10px; border-bottom: 1px dashed var(--border); background: rgba(255,255,255,0.03); border-radius: 4px; }
-.mastery-title { font-weight: bold; color: var(--text); }
+/* 1단계: 스탯 (가장 바깥 컨테이너) */
+.stat-item { background: var(--bg-panel); border: 1px solid var(--border); margin-bottom: 10px; border-radius: 6px; overflow: hidden; }
+.stat-header { padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: rgba(128,128,128,0.05); font-weight: bold; }
+.stat-detail { padding: 15px; border-top: 1px solid var(--border); background: rgba(0,0,0,0.02); }
+
+/* 2단계: 마스터리 (중간 그룹 헤더) */
+.mastery-header { 
+    display: flex; justify-content: space-between; align-items: center; 
+    margin-top: 5px; margin-bottom: 10px; padding: 8px 12px; 
+    border-bottom: 2px solid var(--border); 
+    background: var(--bg-mastery-header); /* 변수 사용 */
+    border-radius: 4px 4px 0 0; 
+    color: var(--text);
+}
+.mastery-title { font-weight: bold; font-size: 1.05em; }
+
+/* 3단계: 스킬 카드 (가장 안쪽 요소) */
+.skill-card {
+    background: var(--bg-skill-card); /* 변수 사용 (라이트 테마에서 밝게) */
+    border: 1px solid var(--border);
+    border-radius: 0 0 6px 6px; /* 마스터리 헤더와 이어지는 느낌 */
+    padding: 12px 15px;
+    margin-bottom: 15px; /* 다음 마스터리 그룹과의 간격 */
+    margin-left: 10px; /* 들여쓰기 효과 */
+    margin-right: 10px;
+    box-shadow: none; /* 불필요한 그림자 제거로 깔끔하게 */
+    transition: transform 0.1s, border-color 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+/* 라이트 테마에서 스킬 카드 테두리 조금 더 진하게 */
+body.light-theme .skill-card { border-color: #ccc; }
+
+.skill-card:active { transform: scale(0.99); }
+
+.skill-header-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+.skill-name { font-size: 1.1em; color: var(--text); font-weight: bold; }
+.skill-meta-group { display: flex; align-items: center; gap: 10px; }
+.skill-lv-badge { font-size: 0.9em; color: var(--gold); background: rgba(0, 0, 0, 0.3); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(255, 215, 0, 0.3); font-family: 'DungGeunMo', monospace; }
+body.light-theme .skill-lv-badge { background: rgba(255, 215, 0, 0.1); color: #b8860b; border-color: #b8860b; }
+
+.skill-progress-track { width: 100%; height: 14px; background: rgba(0,0,0,0.2); border-radius: 7px; overflow: hidden; position: relative; border: 1px solid var(--border); }
+body.light-theme .skill-progress-track { background: #e0e0e0; border-color: #ccc; }
+
+.skill-progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent) 0%, #6BCB77 100%); width: 0%; transition: width 0.5s ease-out; }
+.skill-percent-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.75em; color: #fff; text-shadow: 1px 1px 2px rgba(0,0,0,0.7); white-space: nowrap; z-index: 2; line-height: 1; }
+
+.btn-skill-edit { background: none; border: none; color: #888; cursor: pointer; padding: 4px; font-size: 1.1em; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: color 0.2s, background 0.2s; margin: 0; width: auto; }
+.btn-skill-edit:hover { color: var(--accent); background: rgba(128, 128, 128, 0.1); }
+
+/* ========================================= */
 
 .quest-card { display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--accent); }
 .quest-info { flex: 1; }
@@ -98,15 +155,7 @@ nav {
 .tag-main { background: rgba(77, 150, 255, 0.2); color: var(--accent); }
 .tag-sub { background: rgba(255, 215, 0, 0.2); color: var(--gold); }
 
-button { 
-    width: 100%; padding: 14px; border: none; 
-    background: var(--accent); color: #fff; 
-    font-family: inherit; cursor: pointer; 
-    border-bottom: 4px solid rgba(0,0,0,0.3); border-radius: 4px; 
-    margin-top: 5px; font-size: 1.1em; 
-    display: flex; align-items: center; justify-content: center; 
-    gap: 6px; line-height: 1;
-}
+button { width: 100%; padding: 14px; border: none; background: var(--accent); color: #fff; font-family: inherit; cursor: pointer; border-bottom: 4px solid rgba(0,0,0,0.3); border-radius: 4px; margin-top: 5px; font-size: 1.1em; display: flex; align-items: center; justify-content: center; gap: 6px; line-height: 1; }
 button:active { transform: translateY(2px); border-bottom-width: 2px; }
 .btn-sm { width: auto; padding: 8px 12px; font-size: 0.9em; border-bottom-width: 2px; margin: 0; height: 36px; }
 .btn-text { background: transparent; border: none; color: #888; margin-top: 10px; border-bottom: none; font-size: 1em; }
@@ -210,132 +259,7 @@ button:active { transform: translateY(2px); border-bottom-width: 2px; }
     }
 }
 
-/* =========================================
-   [New] RPG 스킬 카드 디자인 (Flex Fix)
-   ========================================= */
-.skill-card {
-    background: rgba(30, 30, 36, 0.6);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px 15px; /* 좌우 여백 확보 */
-    margin-bottom: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-    transition: transform 0.1s;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.skill-card:active {
-    transform: scale(0.99);
-}
-
-/* 헤더 행: 좌(이름) vs 우(레벨+버튼) 정렬 */
-.skill-header-row {
-    display: flex;
-    justify-content: space-between; /* 양 끝 배치 */
-    align-items: center;
-    width: 100%;
-}
-
-.skill-name {
-    font-size: 1.1em;
-    color: var(--text);
-    font-weight: bold;
-    text-shadow: 1px 1px 0 rgba(0,0,0,0.5);
-}
-
-/* 우측 정보 그룹 */
-.skill-meta-group {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.skill-lv-badge {
-    font-size: 0.9em;
-    color: var(--gold);
-    background: rgba(0, 0, 0, 0.3);
-    padding: 2px 8px;
-    border-radius: 4px;
-    border: 1px solid rgba(255, 215, 0, 0.3);
-    font-family: 'DungGeunMo', monospace;
-}
-
-.skill-progress-track {
-    width: 100%;
-    height: 14px;
-    background: #111;
-    border-radius: 7px;
-    overflow: hidden;
-    position: relative;
-    border: 1px solid rgba(255,255,255,0.1);
-}
-
-.skill-progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--accent) 0%, #6BCB77 100%);
-    width: 0%;
-    transition: width 0.5s ease-out;
-    box-shadow: 0 0 10px var(--accent);
-}
-
-.skill-percent-text {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 0.75em;
-    color: #fff;
-    text-shadow: 1px 1px 2px #000;
-    white-space: nowrap;
-    z-index: 2;
-    line-height: 1;
-}
-
-/* 수정 버튼 (위치 고정 해제 -> Flex 배치) */
-.btn-skill-edit {
-    background: none;
-    border: none;
-    color: #666;
-    cursor: pointer;
-    padding: 4px;
-    font-size: 1.1em;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-    transition: color 0.2s, background 0.2s;
-    margin: 0;
-    width: auto;
-}
-
-.btn-skill-edit:hover {
-    color: var(--accent);
-    background: rgba(255, 255, 255, 0.05);
-}
-
-
-/* =========================================
-   [Fix] 드롭다운(Select) 가독성 문제 해결
-   ========================================= */
-
-/* 1. 셀렉트 박스 자체의 배경을 불투명하게 설정 */
-select, .input-dark, .mini-select {
-    background-color: var(--bg-panel) !important; /* 투명(rgba) 대신 확실한 색상 지정 */
-    color: var(--text) !important;
-}
-
-/* 2. 펼쳐졌을 때 옵션(Option)들의 색상 강제 지정 */
-select option {
-    background-color: #222222 !important; /* 배경을 아주 어둡게 */
-    color: #ffffff !important;            /* 글자는 하얗게 */
-    padding: 10px;
-}
-
-/* (선택사항) 크롬 등에서 마우스 올렸을 때 색상 */
-select option:hover, 
-select option:checked {
-    background-color: var(--accent) !important;
-    color: #ffffff !important;
-}
+/* 드롭다운 가독성 픽스 */
+select, .input-dark, .mini-select { background-color: var(--bg-panel) !important; color: var(--text) !important; }
+select option { background-color: var(--bg-panel) !important; color: var(--text) !important; padding: 10px; }
+select option:hover, select option:checked { background-color: var(--accent) !important; color: #fff !important; }
