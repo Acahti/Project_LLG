@@ -292,10 +292,95 @@ window.openTitleModal=()=>{document.getElementById('modal-title').style.display=
 window.switchTitleTab=(t)=>{document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById(`tab-btn-${t}`).classList.add('active');const l=document.getElementById('title-list-container');l.innerHTML='';const it=t==='title'?state.unlockedTitles:state.unlockedJobs;const c=t==='title'?state.currentTitle:state.currentJob;if(it.length===0)l.innerHTML='<div style="padding:10px;color:#888;">목록이 없습니다.</div>';it.forEach(i=>{const cls=c===i?'active':'';l.innerHTML+=`<div class="list-item ${cls}" onclick="equip${t==='title'?'Title':'Job'}('${i}')"><span>${i}</span>${cls?'<span class="material-icons-round" style="font-size:14px;">check</span>':''}</div>`});};
 window.equipTitle=(t)=>{state.currentTitle=t;DataManager.save(state);updateGlobalUI();switchTitleTab('title');showToast(`칭호가 [${t}](으)로 변경되었습니다.`);};
 window.equipJob=(j)=>{state.currentJob=j;DataManager.save(state);updateGlobalUI();switchTitleTab('job');showToast(`직업이 [${j}](으)로 변경되었습니다.`);};
-window.openSkillCreateModal=()=>{document.getElementById('modal-create-skill').style.display='flex';const g=document.getElementById('core-select-group');g.innerHTML='';['STR','DEX','INT','WIS','VIT'].forEach(c=>{const d=document.createElement('div');d.className='chip';d.innerText=c;d.onclick=()=>{document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));d.classList.add('active');selectedCoreForCreate=c;updateMasterySelect(c);};g.appendChild(d);});updateMasterySelect(null);};
-function updateMasterySelect(c){const s=document.getElementById('new-mastery-select');s.innerHTML='';if(!c){s.innerHTML='<option>-- 스탯 선택 --</option>';return;}for(let m in state.masteries)if(state.masteries[m].core===c)s.innerHTML+=`<option value="${m}">${state.masteries[m].name}</option>`;s.innerHTML+='<option value="NEW">+ 새 마스터리 생성</option>';checkMasteryInput();}
+window.openSkillCreateModal = () => {
+    document.getElementById('modal-create-skill').style.display = 'flex';
+    
+    // [Fix] 모달 열 때 기존 선택값 초기화 (이게 없어서 버그 발생)
+    selectedCoreForCreate = null; 
+    
+    // 스탯 칩 선택 상태 해제
+    document.querySelectorAll('#core-select-group .chip').forEach(x => x.classList.remove('active'));
+    
+    const g = document.getElementById('core-select-group');
+    g.innerHTML = '';
+    ['STR', 'DEX', 'INT', 'WIS', 'VIT'].forEach(c => {
+        const d = document.createElement('div');
+        d.className = 'chip';
+        d.innerText = c;
+        d.onclick = () => {
+            document.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
+            d.classList.add('active');
+            selectedCoreForCreate = c;
+            updateMasterySelect(c);
+        };
+        g.appendChild(d);
+    });
+    
+    // 마스터리 선택창도 초기화
+    updateMasterySelect(null);
+    
+    // 입력창 초기화
+    document.getElementById('new-skill-name').value = '';
+    document.getElementById('new-mastery-input').value = '';
+};
+function updateMasterySelect(c) {
+    const s = document.getElementById('new-mastery-select');
+    s.innerHTML = '';
+    
+    if (!c) {
+        // [Fix] value를 비워둠
+        s.innerHTML = '<option value="">-- 스탯을 먼저 선택하세요 --</option>';
+        return;
+    }
+    
+    let hasMastery = false;
+    for (let m in state.masteries) {
+        if (state.masteries[m].core === c) {
+            s.innerHTML += `<option value="${m}">${state.masteries[m].name}</option>`;
+            hasMastery = true;
+        }
+    }
+    s.innerHTML += '<option value="NEW">+ 새 마스터리 생성</option>';
+    
+    // 마스터리가 하나도 없으면 자동으로 '새 마스터리 생성' 선택
+    if(!hasMastery) s.value = "NEW";
+    
+    checkMasteryInput();
+}
 window.checkMasteryInput=()=>{document.getElementById('new-mastery-input').style.display=document.getElementById('new-mastery-select').value==='NEW'?'block':'none';};
-window.createSkillAction=()=>{if(!selectedCoreForCreate)return showToast("스탯을 선택해주세요.");let m=document.getElementById('new-mastery-select').value;const mi=document.getElementById('new-mastery-input').value.trim();const sn=document.getElementById('new-skill-name').value.trim();if(m==='NEW'&&!mi)return showToast("마스터리 이름을 입력해주세요.");if(!sn)return showToast("스킬 이름을 입력해주세요.");if(m==='NEW'){m='m'+Date.now();state.masteries[m]={name:mi,core:selectedCoreForCreate,level:0};}state.skills['s'+Date.now()]={name:sn,mastery:m,seconds:0,level:0,hidden:false};DataManager.save(state);closeModal('modal-create-skill');updateGlobalUI();renderCharacter();showToast("스킬을 습득했습니다.");};
+window.createSkillAction = () => {
+    // 1. 스탯 선택 검사
+    if (!selectedCoreForCreate) return showToast("핵심 스탯(STR, INT 등)을 선택해주세요.");
+    
+    let m = document.getElementById('new-mastery-select').value;
+    
+    // 2. 마스터리 선택 검사 (빈 값이면 차단)
+    if (!m) return showToast("마스터리를 선택해주세요.");
+
+    const mi = document.getElementById('new-mastery-input').value.trim();
+    const sn = document.getElementById('new-skill-name').value.trim();
+
+    // 3. 새 마스터리 이름 검사
+    if (m === 'NEW' && !mi) return showToast("새로운 마스터리 이름을 입력해주세요.");
+    
+    // 4. 스킬 이름 검사
+    if (!sn) return showToast("스킬 이름을 입력해주세요.");
+
+    // 데이터 생성 로직
+    if (m === 'NEW') {
+        m = 'm' + Date.now();
+        state.masteries[m] = { name: mi, core: selectedCoreForCreate, level: 0 };
+    }
+    
+    state.skills['s' + Date.now()] = { name: sn, mastery: m, seconds: 0, level: 0, hidden: false };
+    
+    DataManager.save(state);
+    closeModal('modal-create-skill');
+    updateGlobalUI();
+    renderCharacter();
+    showToast("스킬을 습득했습니다.");
+};
+
 window.openQuestManager=()=>{const sk=Object.values(state.skills).filter(s=>!s.hidden);if(sk.length===0)return showToast("생성된 스킬이 없습니다.");document.getElementById('modal-create-quest').style.display='flex';const m=document.getElementById('quest-main-skill');const s=document.getElementById('quest-sub-skill');m.innerHTML='';s.innerHTML='<option value="">-- 보너스 없음 --</option>';sk.forEach(k=>{const id=Object.keys(state.skills).find(key=>state.skills[key]===k);const o=`<option value="${id}">${k.name}</option>`;m.innerHTML+=o;s.innerHTML+=o;});};
 window.createQuestAction=()=>{const n=document.getElementById('new-quest-name').value.trim();const m=document.getElementById('quest-main-skill').value;const s=document.getElementById('quest-sub-skill').value;if(!n) return showToast("의뢰 이름을 입력해주세요."); if(!m) return showToast("주 목표를 선택해주세요."); state.quests['q'+Date.now()]={name:n,mainSkillId:m,subSkillId:s||null};DataManager.save(state);closeModal('modal-create-quest');renderQuest();showToast("의뢰가 등록되었습니다.");};
 window.confirmDeleteQuest = (id) => { if (activeQuestId === id) return showToast("현재 진행 중인 의뢰는 삭제할 수 없습니다."); openConfirmModal("의뢰 삭제", "정말 삭제하시겠습니까?", () => { delete state.quests[id]; DataManager.save(state); renderQuest(); showToast("삭제되었습니다."); }); };
