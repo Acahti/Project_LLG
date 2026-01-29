@@ -314,3 +314,28 @@ button:active { transform: translateY(2px); border-bottom-width: 2px; }
     color: var(--accent);
     background: rgba(255, 255, 255, 0.05);
 }
+
+
+/* =========================================
+   [Fix] 드롭다운(Select) 가독성 문제 해결
+   ========================================= */
+
+/* 1. 셀렉트 박스 자체의 배경을 불투명하게 설정 */
+select, .input-dark, .mini-select {
+    background-color: var(--bg-panel) !important; /* 투명(rgba) 대신 확실한 색상 지정 */
+    color: var(--text) !important;
+}
+
+/* 2. 펼쳐졌을 때 옵션(Option)들의 색상 강제 지정 */
+select option {
+    background-color: #222222 !important; /* 배경을 아주 어둡게 */
+    color: #ffffff !important;            /* 글자는 하얗게 */
+    padding: 10px;
+}
+
+/* (선택사항) 크롬 등에서 마우스 올렸을 때 색상 */
+select option:hover, 
+select option:checked {
+    background-color: var(--accent) !important;
+    color: #ffffff !important;
+}
