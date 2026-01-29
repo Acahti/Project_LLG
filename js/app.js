@@ -159,10 +159,6 @@ function updateGlobalUI() {
     drawRadarChart();
 }
 
-/**
- * [v12.8 Fix] 스킬 카드 레이아웃 정렬 수정
- * - 이름(좌) vs 레벨+버튼(우) Flexbox로 깔끔하게 배치
- */
 function renderCharacter() {
     const list = document.getElementById('stats-list'); list.innerHTML = '';
     ['STR','DEX','INT','WIS','VIT'].forEach(cid => {
@@ -181,7 +177,6 @@ function renderCharacter() {
                 const skillLevel = Math.floor(s.seconds / 3600);
                 const skillExpPercent = ((s.seconds % 3600) / 3600 * 100).toFixed(1);
                 
-                // [구조 변경] Flexbox를 활용한 정렬
                 sh += `
                 <div class="skill-card">
                     <div class="skill-header-row">
@@ -286,94 +281,83 @@ window.openEditSkillModal = (sid) => { editingSkillId = sid; const s = state.ski
 window.saveSkillEdit = () => { const n = document.getElementById('edit-skill-name').value.trim(); if(!n) return showToast("이름을 입력해주세요."); state.skills[editingSkillId].name = n; state.skills[editingSkillId].mastery = document.getElementById('edit-skill-mastery').value; DataManager.save(state); updateGlobalUI(); renderCharacter(); renderQuest(); closeModal('modal-edit-skill'); showToast("수정되었습니다."); };
 window.deleteSkillEdit = () => { openConfirmModal("스킬 삭제", "스킬을 보관함(휴지통)으로 이동하시겠습니까?", () => { state.skills[editingSkillId].hidden = true; DataManager.save(state); updateGlobalUI(); renderCharacter(); renderQuest(); closeModal('modal-edit-skill'); showToast("보관함으로 이동되었습니다."); }); };
 window.openEditMasteryModal = (mid) => { editingMasteryId = mid; const m = state.masteries[mid]; document.getElementById('modal-edit-mastery').style.display = 'flex'; document.getElementById('edit-mastery-name').value = m.name; const sel = document.getElementById('edit-mastery-core'); sel.innerHTML = ''; ['STR','DEX','INT','WIS','VIT'].forEach(c => sel.innerHTML += `<option value="${c}" ${c===m.core?'selected':''}>${state.cores[c].name}</option>`); };
-window.saveMasteryEdit = () => { const n = document.getElementById('edit-mastery-name').value.trim(); if(!n) return showToast("이름을 입력해주세요."); state.masteries[editingMasteryId].name = n; state.masteries[editingMasteryId].core = document.getElementById('edit-mastery-core').value; DataManager.save(state); updateGlobalUI(); renderCharacter(); closeModal('modal-edit-mastery'); showToast("수정되었습니다."); };
+
+window.saveMasteryEdit = () => {
+    const n = document.getElementById('edit-mastery-name').value.trim();
+    const targetCore = document.getElementById('edit-mastery-core').value;
+
+    if(!n) return showToast("이름을 입력해주세요.");
+
+    // [Fix] 수정 시 중복 검사 로직 추가
+    // 조건: "내 자신(editingMasteryId)"이 아니면서, "이름"과 "타겟 스탯"이 모두 같은 마스터리가 있는가?
+    const isDuplicate = Object.keys(state.masteries).some(mid => 
+        mid !== editingMasteryId && // 자기 자신은 제외
+        state.masteries[mid].name === n && 
+        state.masteries[mid].core === targetCore
+    );
+
+    if (isDuplicate) {
+        return showToast(`[${targetCore}] 스탯에 이미 '${n}' 마스터리가 존재합니다.`);
+    }
+
+    state.masteries[editingMasteryId].name = n;
+    state.masteries[editingMasteryId].core = targetCore;
+    
+    DataManager.save(state);
+    updateGlobalUI();
+    renderCharacter();
+    closeModal('modal-edit-mastery');
+    showToast("수정되었습니다.");
+};
 window.deleteMasteryEdit = () => { openConfirmModal("마스터리 삭제", "이 마스터리와 하위 스킬들이 모두 영구적으로 삭제됩니다.\n계속하시겠습니까?", () => { for(let s in state.skills) if(state.skills[s].mastery === editingMasteryId) delete state.skills[s]; delete state.masteries[editingMasteryId]; DataManager.save(state); updateGlobalUI(); renderCharacter(); renderQuest(); closeModal('modal-edit-mastery'); showToast("삭제되었습니다."); }); };
 window.openTitleModal=()=>{document.getElementById('modal-title').style.display='flex';switchTitleTab('title');};
 window.switchTitleTab=(t)=>{document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById(`tab-btn-${t}`).classList.add('active');const l=document.getElementById('title-list-container');l.innerHTML='';const it=t==='title'?state.unlockedTitles:state.unlockedJobs;const c=t==='title'?state.currentTitle:state.currentJob;if(it.length===0)l.innerHTML='<div style="padding:10px;color:#888;">목록이 없습니다.</div>';it.forEach(i=>{const cls=c===i?'active':'';l.innerHTML+=`<div class="list-item ${cls}" onclick="equip${t==='title'?'Title':'Job'}('${i}')"><span>${i}</span>${cls?'<span class="material-icons-round" style="font-size:14px;">check</span>':''}</div>`});};
 window.equipTitle=(t)=>{state.currentTitle=t;DataManager.save(state);updateGlobalUI();switchTitleTab('title');showToast(`칭호가 [${t}](으)로 변경되었습니다.`);};
 window.equipJob=(j)=>{state.currentJob=j;DataManager.save(state);updateGlobalUI();switchTitleTab('job');showToast(`직업이 [${j}](으)로 변경되었습니다.`);};
-window.openSkillCreateModal = () => {
-    document.getElementById('modal-create-skill').style.display = 'flex';
-    
-    // [Fix] 모달 열 때 기존 선택값 초기화 (이게 없어서 버그 발생)
+
+// [Fix] 스킬/마스터리 중복 생성 방지 로직 추가
+window.openSkillCreateModal=()=>{
+    document.getElementById('modal-create-skill').style.display='flex';
     selectedCoreForCreate = null; 
-    
-    // 스탯 칩 선택 상태 해제
     document.querySelectorAll('#core-select-group .chip').forEach(x => x.classList.remove('active'));
-    
-    const g = document.getElementById('core-select-group');
-    g.innerHTML = '';
-    ['STR', 'DEX', 'INT', 'WIS', 'VIT'].forEach(c => {
-        const d = document.createElement('div');
-        d.className = 'chip';
-        d.innerText = c;
-        d.onclick = () => {
-            document.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
-            d.classList.add('active');
-            selectedCoreForCreate = c;
-            updateMasterySelect(c);
+    const g=document.getElementById('core-select-group');g.innerHTML='';
+    ['STR','DEX','INT','WIS','VIT'].forEach(c=>{
+        const d=document.createElement('div');d.className='chip';d.innerText=c;
+        d.onclick=()=>{
+            document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));
+            d.classList.add('active');selectedCoreForCreate=c;updateMasterySelect(c);
         };
         g.appendChild(d);
     });
-    
-    // 마스터리 선택창도 초기화
     updateMasterySelect(null);
-    
-    // 입력창 초기화
     document.getElementById('new-skill-name').value = '';
     document.getElementById('new-mastery-input').value = '';
 };
-function updateMasterySelect(c) {
-    const s = document.getElementById('new-mastery-select');
-    s.innerHTML = '';
-    
-    if (!c) {
-        // [Fix] value를 비워둠
-        s.innerHTML = '<option value="">-- 스탯을 먼저 선택하세요 --</option>';
-        return;
-    }
-    
-    let hasMastery = false;
-    for (let m in state.masteries) {
-        if (state.masteries[m].core === c) {
-            s.innerHTML += `<option value="${m}">${state.masteries[m].name}</option>`;
-            hasMastery = true;
-        }
-    }
-    s.innerHTML += '<option value="NEW">+ 새 마스터리 생성</option>';
-    
-    // 마스터리가 하나도 없으면 자동으로 '새 마스터리 생성' 선택
-    if(!hasMastery) s.value = "NEW";
-    
-    checkMasteryInput();
-}
+function updateMasterySelect(c){const s=document.getElementById('new-mastery-select');s.innerHTML='';if(!c){s.innerHTML='<option value="">-- 스탯을 먼저 선택하세요 --</option>';return;}let has=false;for(let m in state.masteries)if(state.masteries[m].core===c){s.innerHTML+=`<option value="${m}">${state.masteries[m].name}</option>`;has=true;}s.innerHTML+='<option value="NEW">+ 새 마스터리 생성</option>';if(!has)s.value="NEW";checkMasteryInput();}
 window.checkMasteryInput=()=>{document.getElementById('new-mastery-input').style.display=document.getElementById('new-mastery-select').value==='NEW'?'block':'none';};
-window.createSkillAction = () => {
-    // 1. 스탯 선택 검사
-    if (!selectedCoreForCreate) return showToast("핵심 스탯(STR, INT 등)을 선택해주세요.");
-    
-    let m = document.getElementById('new-mastery-select').value;
-    
-    // 2. 마스터리 선택 검사 (빈 값이면 차단)
-    if (!m) return showToast("마스터리를 선택해주세요.");
 
+window.createSkillAction = () => {
+    if (!selectedCoreForCreate) return showToast("핵심 스탯(STR, INT 등)을 선택해주세요.");
+    let m = document.getElementById('new-mastery-select').value;
+    if (!m) return showToast("마스터리를 선택해주세요.");
     const mi = document.getElementById('new-mastery-input').value.trim();
     const sn = document.getElementById('new-skill-name').value.trim();
 
-    // 3. 새 마스터리 이름 검사
-    if (m === 'NEW' && !mi) return showToast("새로운 마스터리 이름을 입력해주세요.");
-    
-    // 4. 스킬 이름 검사
-    if (!sn) return showToast("스킬 이름을 입력해주세요.");
-
-    // 데이터 생성 로직
     if (m === 'NEW') {
+        if (!mi) return showToast("새로운 마스터리 이름을 입력해주세요.");
+        // [Fix] 마스터리 이름 중복 검사
+        const masteryExists = Object.values(state.masteries).some(mastery => mastery.name === mi && mastery.core === selectedCoreForCreate);
+        if (masteryExists) return showToast("이미 존재하는 마스터리 이름입니다.");
         m = 'm' + Date.now();
         state.masteries[m] = { name: mi, core: selectedCoreForCreate, level: 0 };
     }
     
+    if (!sn) return showToast("스킬 이름을 입력해주세요.");
+    // [Fix] 스킬 이름 중복 검사 (같은 마스터리 내에서)
+    const skillExists = Object.values(state.skills).some(skill => skill.name === sn && skill.mastery === m && !skill.hidden);
+    if (skillExists) return showToast("이미 존재하는 스킬 이름입니다.");
+
     state.skills['s' + Date.now()] = { name: sn, mastery: m, seconds: 0, level: 0, hidden: false };
-    
     DataManager.save(state);
     closeModal('modal-create-skill');
     updateGlobalUI();
