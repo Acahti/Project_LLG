@@ -22,7 +22,6 @@ body.light-theme {
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 body {
-    /* [수정] 상단바(Safe Area) 색상을 헤더와 맞추기 위해 bg-panel 사용 */
     background: var(--bg-panel); 
     color: var(--text);
     font-family: 'DungGeunMo', sans-serif;
@@ -40,7 +39,6 @@ body {
 main { 
     flex: 1; 
     overflow-y: auto; 
-    /* [수정] 본문 배경색을 여기서 지정 */
     background: var(--bg-dark);
     padding: 15px; 
     padding-bottom: 80px; 
@@ -87,8 +85,8 @@ nav {
 .stat-item { background: var(--bg-panel); border: 1px solid var(--border); margin-bottom: 5px; border-radius: 4px; }
 .stat-header { padding: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: rgba(128,128,128,0.1); }
 .stat-detail { padding: 10px; border-top: 1px solid var(--border); background: rgba(0,0,0,0.02); }
-.mastery-header { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; margin-bottom: 5px; padding-bottom: 4px; border-bottom: 1px dashed var(--border); }
-.skill-row { padding: 8px 10px; color: var(--text); font-size: 1em; margin-bottom: 3px; display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); border-radius: 4px; }
+.mastery-header { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px dashed var(--border); }
+.mastery-title { font-weight: bold; color: var(--text); }
 
 .quest-card { display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--accent); }
 .quest-info { flex: 1; }
@@ -183,23 +181,21 @@ button:active { transform: translateY(2px); border-bottom-width: 2px; }
 .mini-select { padding: 6px; font-size: 0.9em; background: var(--bg-dark); color: var(--text); border: 1px solid var(--border); border-radius: 4px; flex: 1; }
 #modal-item-detail .modal-content { height: 70vh; max-height: 600px; }
 
-/* 로그 섹션 스타일 */
 .log-separator { display: flex; align-items: center; margin: 20px 0 10px 0; color: #555; font-size: 0.8em; }
 .log-separator::before, .log-separator::after { content: ""; flex: 1; height: 1px; background: #333; margin: 0 10px; }
 .log-item { border: 1px dashed var(--accent) !important; background: rgba(77, 150, 255, 0.05) !important; margin-top: 10px; }
 .log-item:active { background: rgba(77, 150, 255, 0.15) !important; }
 #stats-log-list .list-item span:last-child { font-family: 'Press Start 2P', cursive; font-size: 0.8em; }
 
-/* [수정] 누락된 PC 화면 대응 코드 추가 */
 @media (min-width: 768px) {
     body {
         max-width: 420px;
         height: 90vh;
-        margin: 5vh auto; /* PC 화면 중앙 정렬 */
+        margin: 5vh auto;
         border: 8px solid #333;
         border-radius: 20px;
         box-shadow: 0 0 50px rgba(0,0,0,0.5);
-        position: relative; /* fixed 해제 및 상대 위치 */
+        position: relative;
     }
     nav {
         position: absolute;
@@ -210,4 +206,95 @@ button:active { transform: translateY(2px); border-bottom-width: 2px; }
     main {
         padding-bottom: 70px;
     }
+}
+
+/* =========================================
+   [New] RPG 스킬 카드 디자인
+   ========================================= */
+.skill-card {
+    background: rgba(30, 30, 36, 0.6);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    transition: transform 0.1s;
+}
+
+.skill-card:active {
+    transform: scale(0.98);
+}
+
+.skill-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.skill-name {
+    font-size: 1.1em;
+    color: var(--text);
+    font-weight: bold;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.5);
+}
+
+.skill-lv-badge {
+    font-size: 0.9em;
+    color: var(--gold);
+    background: rgba(0, 0, 0, 0.3);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.skill-progress-track {
+    width: 100%;
+    height: 14px;
+    background: #111;
+    border-radius: 7px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.skill-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent) 0%, #6BCB77 100%);
+    width: 0%;
+    transition: width 0.5s ease-out;
+    box-shadow: 0 0 10px var(--accent);
+}
+
+.skill-percent-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.75em;
+    color: #fff;
+    text-shadow: 1px 1px 2px #000;
+    white-space: nowrap;
+    z-index: 2;
+    line-height: 1;
+}
+
+.btn-skill-edit {
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    padding: 4px;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 1.2em;
+    z-index: 10;
+    opacity: 0.7;
+}
+
+.btn-skill-edit:hover {
+    color: var(--accent);
+    opacity: 1;
 }
