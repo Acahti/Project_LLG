@@ -263,3 +263,11 @@ button:active { transform: translateY(2px); border-bottom-width: 2px; }
 select, .input-dark, .mini-select { background-color: var(--bg-panel) !important; color: var(--text) !important; }
 select option { background-color: var(--bg-panel) !important; color: var(--text) !important; padding: 10px; }
 select option:hover, select option:checked { background-color: var(--accent) !important; color: #fff !important; }
+
+
+/* =========================================
+   [Fix] 삭제 확인창(Confirm) 우선순위 최상위로 설정
+   ========================================= */
+#modal-confirm {
+    z-index: 3000 !important; /* 다른 모달(2000)보다 무조건 위에 뜨게 함 */
+}
