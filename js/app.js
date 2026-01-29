@@ -155,7 +155,9 @@ function updateGlobalUI() {
     document.getElementById('header-job-title').innerText = `<${state.currentTitle}>`;
     document.getElementById('header-job-name').innerText = state.currentJob;
     document.getElementById('chart-total-level').innerText = `Lv.${tl}`;
-    AchievementManager.checkAll(state, window.showToast);
+    AchievementManager.checkAll(state, window.showToast) {
+        DataManager.save(state);
+    };
     drawRadarChart();
 }
 
