@@ -8,6 +8,9 @@ let state = DataManager.load();
 let timer = null;
 let activeQuestId = state.activeQuestId || null;
 
+// ★ [Fix] 초기화 중인지 확인하는 플래그 (자동 저장 방지용)
+let isResetting = false;
+
 // UI 상태 변수
 let tempEndTime = null; 
 let selectedCoreForCreate = null, editingSkillId = null, editingMasteryId = null, editingItemId = null;
@@ -21,6 +24,7 @@ let selectedItemIcon = RECORD_ICONS[0];
 
 // [Safety] 데이터 무결성 검사
 const sanitizeState = (s) => {
+    if (!s) return; // state가 null이면 중단
     if (!s.settings) s.settings = { theme: 'dark', fontSize: 12 };
     if (!s.unlockedTitles) s.unlockedTitles = ['없음'];
     if (!s.unlockedJobs) s.unlockedJobs = ['무직'];
@@ -36,11 +40,19 @@ const sanitizeState = (s) => {
 
 const initApp = () => {
     sanitizeState(state);
+    
+    // 테마 및 폰트 적용
     document.body.className = state.settings.theme + '-theme';
     document.documentElement.style.setProperty('--base-font', state.settings.fontSize + 'px');
     document.getElementById('current-font-size').innerText = state.settings.fontSize;
     
     bindDataEvents();
+    
+    // ★ [Fix] 하단바 이벤트 리스너를 initApp 내부로 이동 (확실한 실행 보장)
+    document.querySelectorAll('.nav-btn').forEach(b => {
+        b.onclick = () => switchTab(b.dataset.target);
+    });
+
     updateGlobalUI();
 
     // [Resume] 전투 복귀 로직
@@ -88,7 +100,6 @@ function recordActivity(questId, startTime, endTime, isManual = false) {
             }
             const dayRecord = state.dailyRecords[dateKey];
 
-            // [Snapshot] 로그 박제
             dayRecord.logs.push({
                 id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
                 startTime: currentCursor.getTime(),
@@ -99,7 +110,6 @@ function recordActivity(questId, startTime, endTime, isManual = false) {
                 isManual: isManual
             });
 
-            // [Stats] 스킬 통계 합산
             if (mainSkill) {
                 dayRecord.skillStats[q.mainSkillId] = (dayRecord.skillStats[q.mainSkillId] || 0) + segmentSeconds;
             }
@@ -107,19 +117,16 @@ function recordActivity(questId, startTime, endTime, isManual = false) {
                 dayRecord.skillStats[q.subSkillId] = (dayRecord.skillStats[q.subSkillId] || 0) + segmentSeconds;
             }
 
-            // [Summary] 일별 요약
             dayRecord.summary.time += segmentSeconds;
             dayRecord.summary.gold += segmentSeconds; 
         }
         currentCursor = nextMidnight;
     }
 
-    // 3. 보상 지급
     state.gold += totalDuration;
     if (mainSkill) mainSkill.seconds += totalDuration;
     if (subSkill) subSkill.seconds += Math.floor(totalDuration * 0.2);
     
-    // 4. 전리품 (수동 입력 X)
     let lootMsg = "";
     if (!isManual && typeof LOOT_TABLE !== 'undefined') {
         LOOT_TABLE.forEach(loot => {
@@ -139,7 +146,6 @@ function recordActivity(questId, startTime, endTime, isManual = false) {
         });
     }
 
-    // 5. 통계 업데이트
     state.statistics.quest.completed++;
     state.statistics.battle.totalSeconds += totalDuration;
     const startHour = new Date(startTime).getHours();
@@ -284,7 +290,9 @@ function updateBattleUI(mode) {
     }
 }
 
-// ... (기존 헬퍼 함수들 유지) ...
+// =============================================================================
+// Helper Functions
+// =============================================================================
 window.showToast = (msg) => { const c = document.getElementById('toast-container'); const d = document.createElement('div'); d.className = 'toast'; d.innerText = msg; c.appendChild(d); setTimeout(() => { d.style.opacity = '0'; setTimeout(() => d.remove(), 400); }, 2500); };
 window.openConfirmModal = (title, msg, callback) => { const m = document.getElementById('modal-confirm'); document.getElementById('confirm-title').innerText = title; document.getElementById('confirm-msg').innerText = msg; m.style.display = 'flex'; const b = document.getElementById('btn-confirm-yes'); const nb = b.cloneNode(true); b.parentNode.replaceChild(nb, b); nb.onclick = () => { m.style.display = 'none'; callback(); }; };
 window.closeConfirmModal = () => document.getElementById('modal-confirm').style.display = 'none';
@@ -296,8 +304,26 @@ window.openThemeSettings = () => { closeAllModals(); document.getElementById('mo
 window.openDataSettings = () => { closeAllModals(); document.getElementById('modal-settings-data').style.display = 'flex'; };
 window.setTheme = (t) => { state.settings.theme = t; document.body.className = t + '-theme'; DataManager.save(state); showToast("테마가 변경되었습니다."); };
 window.adjustFontSize = (d) => { let s = state.settings.fontSize + d; if(s<8) s=8; if(s>16) s=16; state.settings.fontSize = s; document.documentElement.style.setProperty('--base-font', s + 'px'); document.getElementById('current-font-size').innerText = s; DataManager.save(state); };
-const bindDataEvents = () => { document.getElementById('btn-reset').onclick = () => openConfirmModal("데이터 초기화", "정말 모든 기록을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.", () => DataManager.reset()); document.getElementById('btn-export').onclick = () => { DataManager.export(state); showToast("백업 파일이 생성되었습니다."); }; document.getElementById('btn-import').onclick = () => document.getElementById('file-input').click(); document.getElementById('file-input').onchange = (e) => { const r = new FileReader(); r.onload = (v) => { try { state = JSON.parse(v.target.result); sanitizeState(state); DataManager.save(state); location.reload(); } catch { showToast("파일 형식이 올바르지 않습니다."); } }; if(e.target.files.length) r.readAsText(e.target.files[0]); }; };
-window.forceRefreshAction = () => { openConfirmModal("강제 새로고침", "데이터를 안전하게 저장하고 앱을 다시 로드합니다.\n진행하시겠습니까?", () => { DataManager.save(state); if ('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(regs => { for (let r of regs) r.unregister(); }); } setTimeout(() => { window.location.reload(); }, 100); }); };
+
+const bindDataEvents = () => { 
+    document.getElementById('btn-reset').onclick = () => openConfirmModal("데이터 초기화", "정말 모든 기록을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.", () => {
+        // ★ [Fix] 초기화 플래그 설정 (자동저장 방지)
+        isResetting = true;
+        DataManager.reset();
+    }); 
+    document.getElementById('btn-export').onclick = () => { DataManager.export(state); showToast("백업 파일이 생성되었습니다."); }; 
+    document.getElementById('btn-import').onclick = () => document.getElementById('file-input').click(); 
+    document.getElementById('file-input').onchange = (e) => { const r = new FileReader(); r.onload = (v) => { try { state = JSON.parse(v.target.result); sanitizeState(state); DataManager.save(state); location.reload(); } catch { showToast("파일 형식이 올바르지 않습니다."); } }; if(e.target.files.length) r.readAsText(e.target.files[0]); }; 
+};
+
+window.forceRefreshAction = () => { 
+    openConfirmModal("강제 새로고침", "데이터를 안전하게 저장하고 앱을 다시 로드합니다.\n진행하시겠습니까?", () => { 
+        DataManager.save(state); 
+        if ('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(regs => { for (let r of regs) r.unregister(); }); } 
+        setTimeout(() => { window.location.reload(); }, 100); 
+    }); 
+};
+
 window.openStatisticsModal = () => { const list = document.getElementById('stats-log-list'); if (!list) return; list.innerHTML = ''; const stats = state.statistics; const h = Math.floor(stats.battle.totalSeconds / 3600); const m = Math.floor((stats.battle.totalSeconds % 3600) / 60); const logData = [ { label: "📜 총 의뢰 완료", value: `${stats.quest.completed}회` }, { label: "🌙 심야 수련(00-06)", value: `${stats.quest.nightOwl}회` }, { label: "⚔️ 누적 수련 시간", value: `${h}시간 ${m}분` }, { label: "💰 보상 교환 횟수", value: `${stats.shop.purchases}회` }, { label: "💸 누적 골드 소모", value: `${stats.shop.goldSpent.toLocaleString()} G` } ]; logData.forEach(item => { const div = document.createElement('div'); div.className = 'list-item'; div.style.cssText = 'display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid var(--border); font-size:0.9em; cursor:default;'; div.innerHTML = `<span>${item.label}</span><span style="color:var(--gold); font-weight:bold;">${item.value}</span>`; list.appendChild(div); }); document.getElementById('modal-statistics').style.display = 'flex'; };
 function drawRadarChart() { const cvs = document.getElementById('stat-radar'); if (!cvs) return; const ctx = cvs.getContext('2d'), w = cvs.width, h = cvs.height, cx = w/2, cy = h/2, r = w/2 - 40; ctx.clearRect(0,0,w,h); ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--border').trim(); ctx.lineWidth = 1; for(let i=1; i<=5; i++) { ctx.beginPath(); for(let j=0; j<5; j++) { const a = (Math.PI*2*j)/5 - Math.PI/2; ctx.lineTo(cx+(r/5)*i*Math.cos(a), cy+(r/5)*i*Math.sin(a)); } ctx.closePath(); ctx.stroke(); } const stats = ['STR','DEX','INT','WIS','VIT']; const levels = stats.map(k => state.cores[k] ? state.cores[k].level : 0); const maxVal = Math.max(20, ...levels) * 1.2; ctx.beginPath(); ctx.fillStyle = 'rgba(77,150,255,0.4)'; ctx.strokeStyle = '#4D96FF'; ctx.lineWidth = 2; stats.forEach((k,i) => { const v = state.cores[k] ? state.cores[k].level : 0; const a = (Math.PI*2*i)/5 - Math.PI/2; ctx.lineTo(cx+(v/maxVal)*r*Math.cos(a), cy+(v/maxVal)*r*Math.sin(a)); }); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#888'; ctx.font = '10px "DungGeunMo"'; ctx.textAlign = 'center'; stats.forEach((k,i) => { const a = (Math.PI*2*i)/5 - Math.PI/2; ctx.fillText(k, cx+(r+20)*Math.cos(a), cy+(r+20)*Math.sin(a)+4); }); }
 function updateGlobalUI() { let tl = 0; for(let s in state.skills) state.skills[s].level = Math.floor(state.skills[s].seconds/3600); for(let m in state.masteries) state.masteries[m].level = 0; for(let c in state.cores) state.cores[c].level = 0; for(let s in state.skills) { const sk = state.skills[s]; if(sk.hidden || !sk.mastery) continue; const ma = state.masteries[sk.mastery]; if(!ma) continue; ma.level += sk.level; state.cores[ma.core].level += sk.level; } for(let c in state.cores) tl += state.cores[c].level; state.totalLevel = tl; document.getElementById('ui-gold').innerText = `${state.gold} G`; document.getElementById('header-job-title').innerText = `<${state.currentTitle}>`; document.getElementById('header-job-name').innerText = state.currentJob; document.getElementById('chart-total-level').innerText = `Lv.${tl}`; if (AchievementManager.checkAll(state, window.showToast)) { DataManager.save(state); } drawRadarChart(); }
@@ -343,11 +369,42 @@ window.createShopItemAction=()=>{const n=document.getElementById('new-shop-item-
 window.openRestoreSkillMode=()=>{document.getElementById('modal-restore-skill').style.display='flex';const l=document.getElementById('deleted-skill-list');l.innerHTML='';let c=0;for(let sid in state.skills){const s=state.skills[sid];if(s.hidden){c++;l.innerHTML+=`<div class="list-item"><span style="text-decoration:line-through;color:#888;">${s.name}</span><div style="display:flex;gap:5px;"><button class="btn-sm" onclick="restoreSkill('${sid}')">복구</button><button class="btn-sm btn-danger" onclick="permDeleteSkill('${sid}')">삭제</button></div></div>`;}}if(c===0)l.innerHTML='<div style="text-align:center;padding:20px;color:#888;">비어있음</div>';};
 window.restoreSkill=(sid)=>{state.skills[sid].hidden=false;DataManager.save(state);openRestoreSkillMode();renderCharacter();showToast("복구되었습니다.");};
 window.permDeleteSkill=(sid)=>{openConfirmModal("영구 삭제", "정말 삭제하시겠습니까?", ()=>{delete state.skills[sid];DataManager.save(state);openRestoreSkillMode();updateGlobalUI();showToast("삭제되었습니다.");});};
-const switchTab = (t) => { document.querySelectorAll('.tab-screen').forEach(e => e.classList.remove('active')); document.getElementById(`tab-${t}`).classList.add('active'); document.querySelectorAll('.nav-btn').forEach(e => e.classList.remove('active')); document.querySelector(`[data-target="${t}"]`).classList.add('active'); if(t==='character') renderCharacter(); if(t==='quest') renderQuest(); if(t==='inventory') { invState.view = 'portal'; invState.category = null; invState.folderId = null; updateInvRender(); } if(t==='shop') renderShop(); if (t === 'battle') { requestAnimationFrame(() => updateBattleUI(activeQuestId ? 'battle' : 'idle')); } };
+
+const switchTab = (t) => { 
+    try {
+        document.querySelectorAll('.tab-screen').forEach(e => e.classList.remove('active')); 
+        const target = document.getElementById(`tab-${t}`);
+        if(target) target.classList.add('active'); 
+        
+        document.querySelectorAll('.nav-btn').forEach(e => e.classList.remove('active')); 
+        const navBtn = document.querySelector(`[data-target="${t}"]`);
+        if(navBtn) navBtn.classList.add('active'); 
+        
+        if(t==='character') renderCharacter(); 
+        if(t==='quest') renderQuest(); 
+        if(t==='inventory') { invState.view = 'portal'; invState.category = null; invState.folderId = null; updateInvRender(); } 
+        if(t==='shop') renderShop(); 
+        if (t === 'battle') { requestAnimationFrame(() => updateBattleUI(activeQuestId ? 'battle' : 'idle')); }
+    } catch(e) {
+        console.error("Tab switch error:", e);
+    }
+};
 window.switchTab = switchTab;
-setInterval(() => { if (state && state.totalLevel > 0) { DataManager.save(state); } }, 5000);
-const saveOnExit = () => { if (state) { DataManager.save(state); } };
+
+// [방어막] 자동 저장 (단, 초기화 중일 땐 저장 안 함!)
+setInterval(() => { 
+    if (!isResetting && state && state.totalLevel > 0) { 
+        DataManager.save(state); 
+    } 
+}, 5000);
+
+const saveOnExit = () => { 
+    if (!isResetting && state) { 
+        DataManager.save(state); 
+    } 
+};
 window.addEventListener('beforeunload', saveOnExit);
 window.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { saveOnExit(); } });
 window.addEventListener('pagehide', saveOnExit);
+
 initApp();
