@@ -25,43 +25,30 @@ body.light-theme {
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-/* style.css 상단 부분 수정 */
-
 body {
-    background: var(--bg-panel); 
-    color: var(--text);
+    background: var(--bg-panel); color: var(--text);
     font-family: 'DungGeunMo', sans-serif;
     margin: 0; padding: 0;
-    position: fixed; /* 화면 고정 */
-    top: 0; left: 0; right: 0; bottom: 0;
-    width: 100%; height: 100%; 
-    overflow: hidden; /* 바디 스크롤 원천 차단 */
-    
-    /* [New] 모바일 당겨서 새로고침 등 바운스 효과 방지 */
-    overscroll-behavior: none; 
-    
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    width: 100%; height: 100%; overflow: hidden;
     padding-top: var(--safe-top); padding-bottom: var(--safe-bottom);
     display: flex; flex-direction: column;
     user-select: none; font-size: var(--base-font);
     transition: background 0.3s, color 0.3s;
-}
-
-main { 
-    flex: 1; 
-    
-    /* ★ [Fix] 세로 늘어남 방지 (핵심) */
-    /* flex 아이템이 내부 컨텐츠 때문에 부모보다 커지는 것을 강제로 막습니다. */
-    height: 0; 
-    min-height: 0; 
-    
-    overflow-y: auto; 
-    background: var(--bg-dark);
-    padding: 15px; 
-    padding-bottom: 80px; 
-    -webkit-overflow-scrolling: touch; 
+    overscroll-behavior: none; /* 모바일 바운스 방지 */
 }
 
 .flex-center { display: flex; align-items: center; justify-content: center; gap: 5px; }
+
+main { 
+    flex: 1; 
+    /* 모바일용 기본 설정 */
+    height: 0; min-height: 0; 
+    overflow-y: auto; 
+    background: var(--bg-dark);
+    padding: 15px; padding-bottom: 80px; 
+    -webkit-overflow-scrolling: touch; 
+}
 
 header { 
     height: 55px; background: var(--bg-panel); 
@@ -88,6 +75,20 @@ nav {
 .tab-screen.active { display: block; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
+/* [Fix] 차트 컨테이너 강제 고정 */
+.chart-container { 
+    background: rgba(0,0,0,0.05); 
+    border: 2px solid var(--border); 
+    border-radius: 8px; 
+    padding: 10px; margin: 0 auto 15px auto;
+    text-align: center; position: relative;
+    width: 100%; max-width: 300px;
+    aspect-ratio: 1 / 1; 
+    overflow: hidden;
+}
+#stat-radar { width: 100% !important; height: 100% !important; display: block; }
+.chart-level { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2em; color: var(--gold); text-shadow: 2px 2px 0 rgba(0,0,0,0.5); pointer-events: none; }
+
 .card { background: var(--bg-panel); padding: 15px; margin-bottom: 15px; border: 2px solid var(--border); border-radius: 8px; box-shadow: 4px 4px 0 rgba(0,0,0,0.1); }
 .header-card { text-align: center; color: #aaa; display: flex; justify-content: space-between; align-items: center; }
 
@@ -95,51 +96,14 @@ nav {
 .chip { padding: 8px 12px; background: rgba(0,0,0,0.1); border: 1px solid var(--border); border-radius: 4px; cursor: pointer; font-size: 0.9em; }
 .chip.active { background: var(--accent); color: #fff; border-color: transparent; }
 
-/* [Fix] 차트 컨테이너 크기 강제 고정 (폭주 방지) */
-.chart-container { 
-    background: rgba(0,0,0,0.05); 
-    border: 2px solid var(--border); 
-    border-radius: 8px; 
-    padding: 10px; 
-    margin: 0 auto 15px auto; /* 중앙 정렬 */
-    text-align: center; 
-    position: relative;
-    
-    /* ★ 핵심: 너비와 높이를 명확하게 제한 */
-    width: 100%;
-    max-width: 300px; /* 모바일에서 너무 커지지 않게 */
-    aspect-ratio: 1 / 1; /* 정사각형 비율 유지 */
-    overflow: hidden; /* 자식이 뚫고 나가는 것 방지 */
-}
-
-/* [Fix] 캔버스가 부모 크기를 100% 따르도록 설정 */
-#stat-radar { 
-    width: 100% !important; 
-    height: 100% !important; 
-    max-width: 100%;
-    max-height: 100%;
-    display: block; /* 인라인 여백 제거 */
-}
-.chart-level { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2em; color: var(--gold); text-shadow: 2px 2px 0 rgba(0,0,0,0.5); pointer-events: none; }
-
 .stat-item { background: var(--bg-panel); border: 1px solid var(--border); margin-bottom: 10px; border-radius: 6px; overflow: hidden; }
 .stat-header { padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: rgba(128,128,128,0.05); font-weight: bold; }
 .stat-detail { padding: 15px; border-top: 1px solid var(--border); background: rgba(0,0,0,0.02); }
 
-.mastery-header { 
-    display: flex; justify-content: space-between; align-items: center; 
-    margin-top: 5px; margin-bottom: 10px; padding: 8px 12px; 
-    border-bottom: 2px solid var(--border); background: var(--bg-mastery-header);
-    border-radius: 4px 4px 0 0; color: var(--text);
-}
+.mastery-header { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; margin-bottom: 10px; padding: 8px 12px; border-bottom: 2px solid var(--border); background: var(--bg-mastery-header); border-radius: 4px 4px 0 0; color: var(--text); }
 .mastery-title { font-weight: bold; font-size: 1.05em; }
 
-.skill-card {
-    background: var(--bg-skill-card); border: 1px solid var(--border);
-    border-radius: 0 0 6px 6px; padding: 12px 15px; margin-bottom: 15px;
-    margin-left: 10px; margin-right: 10px; box-shadow: none;
-    transition: transform 0.1s, border-color 0.2s; display: flex; flex-direction: column; gap: 10px;
-}
+.skill-card { background: var(--bg-skill-card); border: 1px solid var(--border); border-radius: 0 0 6px 6px; padding: 12px 15px; margin-bottom: 15px; margin-left: 10px; margin-right: 10px; box-shadow: none; transition: transform 0.1s, border-color 0.2s; display: flex; flex-direction: column; gap: 10px; }
 body.light-theme .skill-card { border-color: #ccc; }
 .skill-card:active { transform: scale(0.99); }
 
@@ -198,33 +162,25 @@ button:active { transform: translateY(2px); border-bottom-width: 2px; }
 .toast.hide { animation: fadeOut 0.4s forwards; }
 @keyframes fadeOut { to { opacity: 0; transform: translateY(-10px); } }
 
-/* 보관함 & 포털 */
+/* 보관함 & 포털 스타일 */
 .inv-portal { display: flex; flex-direction: column; gap: 15px; height: 100%; justify-content: center; }
-.portal-btn { 
-    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; 
-    background: var(--bg-panel); border: 2px solid var(--border); border-radius: 12px; cursor: pointer;
-    transition: transform 0.2s, border-color 0.2s; gap: 0;
-}
+.portal-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg-panel); border: 2px solid var(--border); border-radius: 12px; cursor: pointer; transition: transform 0.2s, border-color 0.2s; gap: 0; }
 .portal-btn:active { transform: scale(0.98); }
 .portal-btn h2 { margin: 2px 0 2px 0; color: var(--text); font-size: 1.4em; }
 .portal-btn p { color: #888; font-size: 0.9em; margin: 0; }
 .portal-icon { font-size: 3.0em; color: var(--accent); margin-bottom: 0; }
-
 .inv-nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
 .inv-path { color: var(--text); text-align: center; flex:1; font-size: 1.1em; }
 .inv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px 10px; }
-
 .folder-item { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
 .folder-icon-box { width: 100%; aspect-ratio: 1/1; background: rgba(255, 215, 0, 0.05); border: 2px dashed var(--gold); border-radius: 8px; display: flex; align-items: center; justify-content: center; position: relative; color: var(--gold); }
 .folder-badge { position: absolute; top: -5px; right: -5px; font-size: 0.8em; background: var(--gold); color: #000; padding: 2px 5px; border-radius: 4px; box-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
 .folder-name { font-size: 0.9em; text-align: center; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--gold); }
-
 .inv-item-container { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
 .inv-icon-frame { width: 100%; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; box-shadow: 3px 3px 0 rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); }
 .inv-icon-frame.type-record { border-radius: 12px; }
 .inv-icon-frame.type-loot { border-radius: 50%; background: #2a2a2a; border: 2px solid #555; }
 .inv-item-name { font-size: 0.85em; text-align: center; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #ccc; }
-
 .color-picker-grid { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; }
 .color-option { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
 .color-option.selected { border-color: #fff; transform: scale(1.1); box-shadow: 0 0 10px rgba(255,255,255,0.5); }
@@ -232,7 +188,6 @@ button:active { transform: translateY(2px); border-bottom-width: 2px; }
 .icon-option { aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 4px; color: #888; }
 .icon-option:hover { background: rgba(255,255,255,0.1); color: #fff; }
 .icon-option.selected { background: var(--accent); color: #fff; }
-
 .modal-detail-container { display: flex; flex-direction: column; height: 100%; min-height: 400px; }
 .detail-header { flex: 0 0 auto; text-align: center; padding-bottom: 15px; border-bottom: 2px dashed var(--border); margin-bottom: 15px; }
 .detail-icon-circle { display: inline-flex; align-items: center; justify-content: center; width: 60px; height: 60px; border-radius: 50%; background: rgba(0,0,0,0.2); border: 2px solid var(--border); margin-bottom: 10px; color: var(--accent); }
@@ -241,57 +196,74 @@ button:active { transform: translateY(2px); border-bottom-width: 2px; }
 .action-row { display: flex; justify-content: space-between; align-items: center; gap: 5px; }
 .mini-select { padding: 6px; font-size: 0.9em; background: var(--bg-dark); color: var(--text); border: 1px solid var(--border); border-radius: 4px; flex: 1; }
 #modal-item-detail .modal-content { height: 70vh; max-height: 600px; }
-
 .log-separator { display: flex; align-items: center; margin: 20px 0 10px 0; color: #555; font-size: 0.8em; }
 .log-separator::before, .log-separator::after { content: ""; flex: 1; height: 1px; background: #333; margin: 0 10px; }
 .log-item { border: 1px dashed var(--accent) !important; background: rgba(77, 150, 255, 0.05) !important; margin-top: 10px; }
 .log-item:active { background: rgba(77, 150, 255, 0.15) !important; }
 #stats-log-list .list-item span:last-child { font-family: 'Press Start 2P', cursive; font-size: 0.8em; }
 
-/* PC/태블릿 버전 (폰 모양 프레임) */
+select, .input-dark, .mini-select { background-color: var(--bg-panel) !important; color: var(--text) !important; }
+select option { background-color: var(--bg-panel) !important; color: var(--text) !important; padding: 10px; }
+select option:hover, select option:checked { background-color: var(--accent) !important; color: #fff !important; }
+#modal-confirm { z-index: 3000 !important; }
+
+/* =======================================================
+   [PC/태블릿 뷰] 좀비 버그(세로 늘어남) 방지용 절대 위치 레이아웃
+   ======================================================= */
 @media (min-width: 768px) {
     body {
+        /* [1] 프레임 고정 (절대 늘어나지 않음) */
+        position: relative;
         max-width: 420px;
-        height: 90vh; /* 뷰포트 높이의 90%로 고정 */
+        height: 90vh; /* 화면 높이의 90%로 못박음 */
         margin: 5vh auto;
         
-        /* 폰 테두리 디자인 */
         border: 8px solid #333;
         border-radius: 20px;
         box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        background: var(--bg-panel);
         
-        position: relative;
-        
-        /* ★ [핵심 Fix] 내용물이 길어져도 프레임 밖으로 튀어나가거나 프레임을 늘리지 않음 */
+        /* [2] 자식 요소 탈출 방지 (가장 중요) */
         overflow: hidden; 
         
-        /* Flex 컨테이너 속성 재확인 (이미 상단에 있지만 확실하게) */
-        display: flex;
-        flex-direction: column;
+        /* [3] PC에서는 Flex가 아니라 Block으로 컨테이너 역할만 함 */
+        display: block;
+    }
+
+    header {
+        position: absolute;
+        top: 0; left: 0; width: 100%;
+        height: 55px;
+        z-index: 10;
+        border-radius: 12px 12px 0 0;
     }
 
     nav {
         position: absolute;
-        bottom: 0;
-        left: 0;
-        /* 테두리 둥글기에 맞춰 하단바도 둥글게 */
+        bottom: 0; left: 0; width: 100%;
+        height: 65px;
+        z-index: 10;
         border-radius: 0 0 12px 12px;
-        width: 100%;
     }
 
     main {
-        /* 하단바 높이(65px) + 여유공간 만큼 패딩 */
-        padding-bottom: 70px;
+        /* [4] 콘텐츠 영역을 좌표로 강제 감금 (Top 55 ~ Bottom 65) */
+        position: absolute;
+        top: 55px;
+        bottom: 65px;
+        left: 0; width: 100%;
         
-        /* 메인 영역이 부모(body) 크기 내에서 스크롤되도록 강제 */
-        flex: 1;
-        overflow-y: auto;
-        height: 100%; /* 높이 명시 */
+        margin: 0; /* 마진 제거 */
+        padding: 15px !important;
+        padding-bottom: 15px !important; /* 하단바 가림 방지 */
+        
+        overflow-y: auto; /* 오직 여기만 스크롤 가능 */
+        height: auto !important; /* 높이는 좌표에 따름 */
+        min-height: 0 !important;
+        
+        /* 스크롤바 디자인 (크롬/사파리) */
+        &::-webkit-scrollbar { width: 6px; }
+        &::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.3); border-radius: 3px; }
+        &::-webkit-scrollbar-track { background: transparent; }
     }
 }
-
-select, .input-dark, .mini-select { background-color: var(--bg-panel) !important; color: var(--text) !important; }
-select option { background-color: var(--bg-panel) !important; color: var(--text) !important; padding: 10px; }
-select option:hover, select option:checked { background-color: var(--accent) !important; color: #fff !important; }
-
-#modal-confirm { z-index: 3000 !important; }
