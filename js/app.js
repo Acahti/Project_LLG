@@ -543,4 +543,60 @@ function updateBattleUI(mode) {
 }
 
 document.querySelectorAll('.nav-btn').forEach(b => b.onclick = () => switchTab(b.dataset.target));
+
+
+// =============================================================================
+// 🛡️ [DATA SAFETY] 데이터 증발 방지 시스템 (3중 방어막)
+// =============================================================================
+
+// [방어막 1] 5초마다 자동 저장 (Auto-Save)
+// 브라우저가 갑자기 튕기거나 배터리가 나가도 최대 5초 전 데이터는 살립니다.
+setInterval(() => {
+    if (state && state.totalLevel > 0) { // 의미 있는 데이터가 있을 때만 저장
+        DataManager.save(state);
+        // 개발자 도구 콘솔에서 저장 확인용 (배포 시 주석 처리 가능)
+        // console.log(`[AutoSave] ${new Date().toLocaleTimeString()} 저장 완료`);
+    }
+}, 5000);
+
+// [방어막 2] 탭을 닫거나, 새로고침하거나, 다른 앱으로 갈 때 강제 저장
+// PC에서는 창 닫기/새로고침, 모바일에서는 홈 화면 가기/탭 전환 시 작동합니다.
+const saveOnExit = () => {
+    if (state) {
+        DataManager.save(state);
+    }
+};
+
+// PC/모바일 브라우저 종료 및 새로고침 직전 감지
+window.addEventListener('beforeunload', saveOnExit);
+// 모바일에서 홈 화면으로 나가거나 탭을 바꿀 때 감지 (가장 중요)
+window.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+        saveOnExit();
+    }
+});
+// 모바일 사파리(iOS) 등 일부 환경 대응
+window.addEventListener('pagehide', saveOnExit);
+
+// [방어막 3] 강제 새로고침 기능 보완 (기존 함수 덮어쓰기)
+// 기존 로직이 저장을 확실하게 보장하도록 비동기 처리 느낌을 줍니다.
+window.forceRefreshAction = () => {
+    openConfirmModal("강제 새로고침", "데이터를 안전하게 저장하고 앱을 다시 로드합니다.\n진행하시겠습니까?", () => {
+        // 1. 즉시 저장
+        DataManager.save(state);
+        
+        // 2. 서비스 워커 해제 (캐시 문제 해결)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(regs => {
+                for (let r of regs) r.unregister();
+            });
+        }
+
+        // 3. 아주 짧은 지연 후 리로드 (저장 I/O 완료 시간 확보)
+        setTimeout(() => {
+            window.location.reload();
+        }, 100);
+    });
+};
+
 initApp();
