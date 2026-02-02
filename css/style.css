@@ -1,4 +1,4 @@
-@import url('https://cdn.jsdelivr.net/gh/dunggeunmo/dunggeunmo/dunggeunmo.css');
+@import url('[https://cdn.jsdelivr.net/gh/dunggeunmo/dunggeunmo/dunggeunmo.css](https://cdn.jsdelivr.net/gh/dunggeunmo/dunggeunmo/dunggeunmo.css)');
 
 :root {
     --bg-dark: #121214; --bg-panel: #1e1e24;
@@ -9,8 +9,6 @@
     --safe-top: env(safe-area-inset-top, 20px);
     --safe-bottom: env(safe-area-inset-bottom, 20px);
     --base-font: 12px;
-    
-    /* [New] 계층 구조용 배경색 변수 */
     --bg-mastery-header: rgba(255, 255, 255, 0.03);
     --bg-skill-card: rgba(40, 40, 45, 0.8);
 }
@@ -21,17 +19,14 @@ body.light-theme {
     --accent: #0056b3; --gold: #b8860b;
     --btn-sec-bg: #e0e0e0;
     --btn-sec-text: #555;
-
-    /* [New] 라이트 테마 계층 구조 색상 개선 */
     --bg-mastery-header: rgba(0, 0, 0, 0.03);
-    --bg-skill-card: #ffffff; /* 밝고 깨끗한 배경 */
+    --bg-skill-card: #ffffff; 
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 body {
-    background: var(--bg-panel); 
-    color: var(--text);
+    background: var(--bg-panel); color: var(--text);
     font-family: 'DungGeunMo', sans-serif;
     margin: 0; padding: 0;
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -45,19 +40,14 @@ body {
 .flex-center { display: flex; align-items: center; justify-content: center; gap: 5px; }
 
 main { 
-    flex: 1; 
-    overflow-y: auto; 
-    background: var(--bg-dark);
-    padding: 15px; 
-    padding-bottom: 80px; 
-    -webkit-overflow-scrolling: touch; 
+    flex: 1; overflow-y: auto; background: var(--bg-dark);
+    padding: 15px; padding-bottom: 80px; -webkit-overflow-scrolling: touch; 
 }
 
 header { 
     height: 55px; background: var(--bg-panel); 
     display: flex; justify-content: space-between; align-items: center; 
-    padding: 0 15px; border-bottom: 2px solid var(--border); 
-    flex-shrink: 0; z-index: 100;
+    padding: 0 15px; border-bottom: 2px solid var(--border); flex-shrink: 0; z-index: 100;
 }
 .header-left { display: flex; flex-direction: column; justify-content: center; gap: 4px; cursor: pointer; }
 .header-right { display: flex; flex-direction: row; align-items: center; gap: 15px; }
@@ -90,44 +80,25 @@ nav {
 #stat-radar { max-width: 100%; height: auto; }
 .chart-level { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2em; color: var(--gold); text-shadow: 2px 2px 0 rgba(0,0,0,0.5); pointer-events: none; }
 
-/* =========================================
-   [Fix] 계층 구조 가독성 개선 (스탯 > 마스터리 > 스킬)
-   ========================================= */
-
-/* 1단계: 스탯 (가장 바깥 컨테이너) */
 .stat-item { background: var(--bg-panel); border: 1px solid var(--border); margin-bottom: 10px; border-radius: 6px; overflow: hidden; }
 .stat-header { padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: rgba(128,128,128,0.05); font-weight: bold; }
 .stat-detail { padding: 15px; border-top: 1px solid var(--border); background: rgba(0,0,0,0.02); }
 
-/* 2단계: 마스터리 (중간 그룹 헤더) */
 .mastery-header { 
     display: flex; justify-content: space-between; align-items: center; 
     margin-top: 5px; margin-bottom: 10px; padding: 8px 12px; 
-    border-bottom: 2px solid var(--border); 
-    background: var(--bg-mastery-header); /* 변수 사용 */
-    border-radius: 4px 4px 0 0; 
-    color: var(--text);
+    border-bottom: 2px solid var(--border); background: var(--bg-mastery-header);
+    border-radius: 4px 4px 0 0; color: var(--text);
 }
 .mastery-title { font-weight: bold; font-size: 1.05em; }
 
-/* 3단계: 스킬 카드 (가장 안쪽 요소) */
 .skill-card {
-    background: var(--bg-skill-card); /* 변수 사용 (라이트 테마에서 밝게) */
-    border: 1px solid var(--border);
-    border-radius: 0 0 6px 6px; /* 마스터리 헤더와 이어지는 느낌 */
-    padding: 12px 15px;
-    margin-bottom: 15px; /* 다음 마스터리 그룹과의 간격 */
-    margin-left: 10px; /* 들여쓰기 효과 */
-    margin-right: 10px;
-    box-shadow: none; /* 불필요한 그림자 제거로 깔끔하게 */
-    transition: transform 0.1s, border-color 0.2s;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    background: var(--bg-skill-card); border: 1px solid var(--border);
+    border-radius: 0 0 6px 6px; padding: 12px 15px; margin-bottom: 15px;
+    margin-left: 10px; margin-right: 10px; box-shadow: none;
+    transition: transform 0.1s, border-color 0.2s; display: flex; flex-direction: column; gap: 10px;
 }
-/* 라이트 테마에서 스킬 카드 테두리 조금 더 진하게 */
 body.light-theme .skill-card { border-color: #ccc; }
-
 .skill-card:active { transform: scale(0.99); }
 
 .skill-header-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
@@ -138,14 +109,11 @@ body.light-theme .skill-lv-badge { background: rgba(255, 215, 0, 0.1); color: #b
 
 .skill-progress-track { width: 100%; height: 14px; background: rgba(0,0,0,0.2); border-radius: 7px; overflow: hidden; position: relative; border: 1px solid var(--border); }
 body.light-theme .skill-progress-track { background: #e0e0e0; border-color: #ccc; }
-
 .skill-progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent) 0%, #6BCB77 100%); width: 0%; transition: width 0.5s ease-out; }
 .skill-percent-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.75em; color: #fff; text-shadow: 1px 1px 2px rgba(0,0,0,0.7); white-space: nowrap; z-index: 2; line-height: 1; }
 
 .btn-skill-edit { background: none; border: none; color: #888; cursor: pointer; padding: 4px; font-size: 1.1em; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: color 0.2s, background 0.2s; margin: 0; width: auto; }
 .btn-skill-edit:hover { color: var(--accent); background: rgba(128, 128, 128, 0.1); }
-
-/* ========================================= */
 
 .quest-card { display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--accent); }
 .quest-info { flex: 1; }
@@ -240,34 +208,16 @@ button:active { transform: translateY(2px); border-bottom-width: 2px; }
 
 @media (min-width: 768px) {
     body {
-        max-width: 420px;
-        height: 90vh;
-        margin: 5vh auto;
-        border: 8px solid #333;
-        border-radius: 20px;
-        box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        max-width: 420px; height: 90vh; margin: 5vh auto;
+        border: 8px solid #333; border-radius: 20px; box-shadow: 0 0 50px rgba(0,0,0,0.5);
         position: relative;
     }
-    nav {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        border-radius: 0 0 12px 12px;
-    }
-    main {
-        padding-bottom: 70px;
-    }
+    nav { position: absolute; bottom: 0; left: 0; border-radius: 0 0 12px 12px; }
+    main { padding-bottom: 70px; }
 }
 
-/* 드롭다운 가독성 픽스 */
 select, .input-dark, .mini-select { background-color: var(--bg-panel) !important; color: var(--text) !important; }
 select option { background-color: var(--bg-panel) !important; color: var(--text) !important; padding: 10px; }
 select option:hover, select option:checked { background-color: var(--accent) !important; color: #fff !important; }
 
-
-/* =========================================
-   [Fix] 삭제 확인창(Confirm) 우선순위 최상위로 설정
-   ========================================= */
-#modal-confirm {
-    z-index: 3000 !important; /* 다른 모달(2000)보다 무조건 위에 뜨게 함 */
-}
+#modal-confirm { z-index: 3000 !important; }
