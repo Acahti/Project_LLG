@@ -95,8 +95,31 @@ nav {
 .chip { padding: 8px 12px; background: rgba(0,0,0,0.1); border: 1px solid var(--border); border-radius: 4px; cursor: pointer; font-size: 0.9em; }
 .chip.active { background: var(--accent); color: #fff; border-color: transparent; }
 
-.chart-container { background: rgba(0,0,0,0.05); border: 2px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 15px; text-align: center; position: relative; }
-#stat-radar { max-width: 100%; height: auto; }
+/* [Fix] 차트 컨테이너 크기 강제 고정 (폭주 방지) */
+.chart-container { 
+    background: rgba(0,0,0,0.05); 
+    border: 2px solid var(--border); 
+    border-radius: 8px; 
+    padding: 10px; 
+    margin: 0 auto 15px auto; /* 중앙 정렬 */
+    text-align: center; 
+    position: relative;
+    
+    /* ★ 핵심: 너비와 높이를 명확하게 제한 */
+    width: 100%;
+    max-width: 300px; /* 모바일에서 너무 커지지 않게 */
+    aspect-ratio: 1 / 1; /* 정사각형 비율 유지 */
+    overflow: hidden; /* 자식이 뚫고 나가는 것 방지 */
+}
+
+/* [Fix] 캔버스가 부모 크기를 100% 따르도록 설정 */
+#stat-radar { 
+    width: 100% !important; 
+    height: 100% !important; 
+    max-width: 100%;
+    max-height: 100%;
+    display: block; /* 인라인 여백 제거 */
+}
 .chart-level { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2em; color: var(--gold); text-shadow: 2px 2px 0 rgba(0,0,0,0.5); pointer-events: none; }
 
 .stat-item { background: var(--bg-panel); border: 1px solid var(--border); margin-bottom: 10px; border-radius: 6px; overflow: hidden; }
