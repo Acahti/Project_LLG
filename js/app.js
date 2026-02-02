@@ -38,8 +38,41 @@ const sanitizeState = (s) => {
     if (!s.legacySkills) s.legacySkills = {}; 
 };
 
+// [System] 30일 지난 상세 로그 청소 (통계는 유지)
+const cleanupOldLogs = () => {
+    if (!state.dailyRecords) return;
+    
+    const now = new Date();
+    const limit = new Date();
+    limit.setDate(now.getDate() - 30); // 30일 전 기준
+    
+    let deletedCount = 0;
+    
+    for (const dateKey in state.dailyRecords) {
+        // 날짜 키(YYYY-MM-DD)를 날짜 객체로 변환
+        const recordDate = new Date(dateKey);
+        
+        // 30일보다 더 오래된 기록이라면?
+        if (recordDate < limit) {
+            // 상세 로그 배열만 비움 (메모리 확보)
+            if (state.dailyRecords[dateKey].logs && state.dailyRecords[dateKey].logs.length > 0) {
+                state.dailyRecords[dateKey].logs = []; 
+                deletedCount++;
+            }
+        }
+    }
+    
+    if (deletedCount > 0) {
+        console.log(`[System] 오래된 기록 ${deletedCount}일치 정리 완료`);
+        DataManager.save(state);
+    }
+};
+
 const initApp = () => {
     sanitizeState(state);
+
+    // ★ [New] 앱 켤 때마다 청소기 가동
+    cleanupOldLogs();
     
     // 테마 및 폰트 적용
     document.body.className = state.settings.theme + '-theme';
