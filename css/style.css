@@ -306,15 +306,29 @@ select option:hover, select option:checked { background-color: var(--accent) !im
 @supports (-webkit-touch-callout: none) {
     /* 1. 차트 레벨 텍스트 보정 */
     .chart-level {
-        padding-top: 6px; /* 아이폰에서만 살짝 내림 */
+        padding-top: 6px; 
     }
 
-    /* 2. 작은 텍스트 요소들 보정 */
-    button, .chip, .skill-lv-badge, .quest-tag, .nav-label {
-        padding-top: 2px; /* 아이폰에서만 살짝 내림 */
+    /* 2. [긴급 수정] 버튼 텍스트 수직 정렬 보정 */
+    /* 기존 패딩(14px)을 덮어쓰지 않고, 위를 늘리고 아래를 줄여서 무게중심을 내림 */
+    button {
+        padding-top: 16px;    /* 14px + 2px */
+        padding-bottom: 12px; /* 14px - 2px */
+    }
+
+    /* 3. 작은 버튼(.btn-sm) 및 칩 별도 보정 */
+    /* 원래 패딩이 8px이므로, 8+2 = 10px로 조정 */
+    .btn-sm, .chip {
+        padding-top: 10px !important;    /* 8px + 2px */
+        padding-bottom: 6px !important;  /* 8px - 2px */
     }
     
-    /* 3. 폰트 렌더링 방식 변경 (iOS 픽셀 폰트 튀는 현상 방지) */
+    /* 4. 기타 뱃지류 */
+    .skill-lv-badge, .quest-tag, .nav-label {
+        padding-top: 2px;
+    }
+    
+    /* 5. 폰트 렌더링 방식 변경 */
     body {
         -webkit-font-smoothing: none; 
     }
