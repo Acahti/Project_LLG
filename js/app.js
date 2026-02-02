@@ -113,6 +113,8 @@ function recordActivity(questId, startTime, endTime, isManual = false) {
     
     // 1. 전체 수행 시간
     const totalDuration = Math.floor((endTime - startTime) / 1000);
+
+    // [Constraint] 1분 미만 기록 제한 (유지)
     if (totalDuration < 60) return { success: false, msg: "1분 미만은 기록되지 않습니다." };
 
     // 2. 날짜별 분할 처리 (자정 넘김 대응)
@@ -158,10 +160,24 @@ function recordActivity(questId, startTime, endTime, isManual = false) {
         currentCursor = nextMidnight;
     }
 
-    state.gold += totalDuration;
+    // 3. [Balance] 골드 보상 계산 (인플레이션 & 럭키 찬스 적용)
+    const baseGoldRate = 10; // 1초당 10 Gold (기존 1G -> 10G 상향)
+    let earnedGold = totalDuration * baseGoldRate;
+    let bonusMsg = "";
+
+    // [Lucky] 10% 확률로 1.5배 대성공 (수동 입력 제외)
+    if (!isManual && Math.random() < 0.1) {
+        earnedGold = Math.floor(earnedGold * 1.5);
+        bonusMsg = " (⚡대성공!)";
+    }
+
+    state.gold += earnedGold;
+
+    // 스킬 경험치는 그대로 1초 = 1 EXP 유지 (레벨업 밸런스 보호)
     if (mainSkill) mainSkill.seconds += totalDuration;
     if (subSkill) subSkill.seconds += Math.floor(totalDuration * 0.2);
     
+    // 4. 전리품 획득 로직
     let lootMsg = "";
     if (!isManual && typeof LOOT_TABLE !== 'undefined') {
         LOOT_TABLE.forEach(loot => {
@@ -181,13 +197,16 @@ function recordActivity(questId, startTime, endTime, isManual = false) {
         });
     }
 
+    // 5. 통계 업데이트
     state.statistics.quest.completed++;
     state.statistics.battle.totalSeconds += totalDuration;
     const startHour = new Date(startTime).getHours();
     if (startHour >= 0 && startHour < 6) state.statistics.quest.nightOwl++;
 
     DataManager.save(state);
-    return { success: true, earnedGold: totalDuration, lootMsg: lootMsg };
+    
+    // 반환 메시지에 보너스 문구 포함
+    return { success: true, earnedGold: earnedGold, lootMsg: lootMsg + bonusMsg };
 }
 
 // =============================================================================
@@ -383,21 +402,36 @@ function updateBattleUI(mode) {
     if (mode === 'battle') {
         const q = state.quests[activeQuestId];
         title.innerText = q ? q.name : '알 수 없는 의뢰';
+        
         const renderTimer = () => {
             const curNow = Date.now();
             const elapsed = Math.floor((curNow - state.activeStartTime) / 1000);
+            
             const h = Math.floor(elapsed / 3600);
             const m = Math.floor((elapsed % 3600) / 60).toString().padStart(2, '0');
             const s = (elapsed % 60).toString().padStart(2, '0');
+            
             timerText.innerText = h > 0 ? `${h}:${m}:${s}` : `00:${m}:${s}`;
-            subText.innerHTML = `수련 진행 중... <br><span style="color:var(--gold); font-size:1.2em; font-weight:bold;">+ ${elapsed.toLocaleString()} G</span>`;
+            
+            // ★ [수정] 화면 표시도 1초당 10G로 계산해서 보여줌 (시각적 만족감)
+            const expectedGold = elapsed * 10; 
+            
+            subText.innerHTML = `수련 진행 중... <br><span style="color:var(--gold); font-size:1.2em; font-weight:bold;">+ ${expectedGold.toLocaleString()} G</span>`;
         };
+        
         renderTimer();
-        btnSelect.style.display = 'none'; btnStop.style.display = 'inline-flex';
+        btnSelect.style.display = 'none'; 
+        btnStop.style.display = 'inline-flex';
+        
         if (!timer) timer = setInterval(renderTimer, 1000);
     } else {
-        title.innerText = ""; timerText.innerText = "휴식 중"; subText.innerText = "HP와 의욕을 회복하고 있습니다.";
-        btnSelect.style.display = 'inline-flex'; btnStop.style.display = 'none';
+        title.innerText = ""; 
+        timerText.innerText = "휴식 중"; 
+        subText.innerText = "HP와 의욕을 회복하고 있습니다.";
+        
+        btnSelect.style.display = 'inline-flex'; 
+        btnStop.style.display = 'none';
+        
         if (timer) { clearInterval(timer); timer = null; }
     }
 }
