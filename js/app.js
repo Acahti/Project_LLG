@@ -389,7 +389,54 @@ window.forceRefreshAction = () => {
 
 window.openStatisticsModal = () => { const list = document.getElementById('stats-log-list'); if (!list) return; list.innerHTML = ''; const stats = state.statistics; const h = Math.floor(stats.battle.totalSeconds / 3600); const m = Math.floor((stats.battle.totalSeconds % 3600) / 60); const logData = [ { label: "📜 총 의뢰 완료", value: `${stats.quest.completed}회` }, { label: "🌙 심야 수련(00-06)", value: `${stats.quest.nightOwl}회` }, { label: "⚔️ 누적 수련 시간", value: `${h}시간 ${m}분` }, { label: "💰 보상 교환 횟수", value: `${stats.shop.purchases}회` }, { label: "💸 누적 골드 소모", value: `${stats.shop.goldSpent.toLocaleString()} G` } ]; logData.forEach(item => { const div = document.createElement('div'); div.className = 'list-item'; div.style.cssText = 'display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid var(--border); font-size:0.9em; cursor:default;'; div.innerHTML = `<span>${item.label}</span><span style="color:var(--gold); font-weight:bold;">${item.value}</span>`; list.appendChild(div); }); document.getElementById('modal-statistics').style.display = 'flex'; };
 function drawRadarChart() { const cvs = document.getElementById('stat-radar'); if (!cvs) return; const ctx = cvs.getContext('2d'), w = cvs.width, h = cvs.height, cx = w/2, cy = h/2, r = w/2 - 40; ctx.clearRect(0,0,w,h); ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--border').trim(); ctx.lineWidth = 1; for(let i=1; i<=5; i++) { ctx.beginPath(); for(let j=0; j<5; j++) { const a = (Math.PI*2*j)/5 - Math.PI/2; ctx.lineTo(cx+(r/5)*i*Math.cos(a), cy+(r/5)*i*Math.sin(a)); } ctx.closePath(); ctx.stroke(); } const stats = ['STR','DEX','INT','WIS','VIT']; const levels = stats.map(k => state.cores[k] ? state.cores[k].level : 0); const maxVal = Math.max(20, ...levels) * 1.2; ctx.beginPath(); ctx.fillStyle = 'rgba(77,150,255,0.4)'; ctx.strokeStyle = '#4D96FF'; ctx.lineWidth = 2; stats.forEach((k,i) => { const v = state.cores[k] ? state.cores[k].level : 0; const a = (Math.PI*2*i)/5 - Math.PI/2; ctx.lineTo(cx+(v/maxVal)*r*Math.cos(a), cy+(v/maxVal)*r*Math.sin(a)); }); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#888'; ctx.font = '10px "DungGeunMo"'; ctx.textAlign = 'center'; stats.forEach((k,i) => { const a = (Math.PI*2*i)/5 - Math.PI/2; ctx.fillText(k, cx+(r+20)*Math.cos(a), cy+(r+20)*Math.sin(a)+4); }); }
-function updateGlobalUI() { let tl = 0; for(let s in state.skills) state.skills[s].level = Math.floor(state.skills[s].seconds/3600); for(let m in state.masteries) state.masteries[m].level = 0; for(let c in state.cores) state.cores[c].level = 0; for(let s in state.skills) { const sk = state.skills[s]; if(sk.hidden || !sk.mastery) continue; const ma = state.masteries[sk.mastery]; if(!ma) continue; ma.level += sk.level; state.cores[ma.core].level += sk.level; } for(let c in state.cores) tl += state.cores[c].level; state.totalLevel = tl; document.getElementById('ui-gold').innerText = `${state.gold} G`; document.getElementById('header-job-title').innerText = `<${state.currentTitle}>`; document.getElementById('header-job-name').innerText = state.currentJob; document.getElementById('chart-total-level').innerText = `Lv.${tl}`; if (AchievementManager.checkAll(state, window.showToast)) { DataManager.save(state); } drawRadarChart(); }
+function updateGlobalUI() {
+    let tl = 0;
+    
+    // 1. 스킬 레벨 계산 (3600초 = 1레벨)
+    for(let s in state.skills) {
+        state.skills[s].level = Math.floor(state.skills[s].seconds / 3600);
+    }
+    
+    // 2. 마스터리 및 코어 스탯 레벨 초기화 (재계산을 위해 0으로)
+    for(let m in state.masteries) state.masteries[m].level = 0;
+    for(let c in state.cores) state.cores[c].level = 0;
+    
+    // 3. 경험치 합산 로직 (스킬 -> 마스터리 -> 코어 스탯)
+    for(let s in state.skills) {
+        const sk = state.skills[s]; 
+        // 숨겨진 스킬이나 마스터리가 없는 스킬은 집계 제외
+        if(sk.hidden || !sk.mastery) continue;
+        
+        const ma = state.masteries[sk.mastery]; 
+        if(!ma) continue;
+        
+        // 마스터리 레벨업
+        ma.level += sk.level; 
+        // 코어 스탯(STR, INT 등) 레벨업
+        state.cores[ma.core].level += sk.level;
+    }
+    
+    // 4. 총 레벨(Total Level) 계산
+    for(let c in state.cores) tl += state.cores[c].level;
+    state.totalLevel = tl;
+    
+    // 5. UI 텍스트 갱신
+    document.getElementById('ui-gold').innerText = `${state.gold.toLocaleString()} G`; // 천단위 콤마 추가
+    document.getElementById('header-job-title').innerText = `<${state.currentTitle}>`;
+    document.getElementById('header-job-name').innerText = state.currentJob;
+    document.getElementById('chart-total-level').innerText = `Lv.${tl}`;
+    
+    // 6. 업적 달성 체크 (조건 달성 시 자동 저장)
+    if (AchievementManager.checkAll(state, window.showToast)) {
+        DataManager.save(state);
+    }
+    
+    // ★ [삭제됨] drawRadarChart(); 
+    // 이유: 탭이 숨겨져 있을 때(display:none) 차트를 그리면 높이가 0이 되거나 
+    // 레이아웃 계산이 꼬여서 화면이 길어지는 버그가 발생합니다.
+    // 차트는 이제 switchTab() 함수에서 화면이 보일 때만 안전하게 그립니다.
+}
+
 function renderCharacter() { const list = document.getElementById('stats-list'); list.innerHTML = ''; ['STR','DEX','INT','WIS','VIT'].forEach(cid => { const c = state.cores[cid]; const d = document.createElement('div'); d.className = 'stat-item'; d.innerHTML = `<div class="stat-header" onclick="toggleStat('${cid}')"><span style="color:${c.color}">● ${c.name}</span><span>Lv.${c.level} ▼</span></div><div id="detail-${cid}" class="stat-detail" style="display:none;"></div>`; list.appendChild(d); const box = d.querySelector(`#detail-${cid}`); let has = false; for(let mid in state.masteries) { const m = state.masteries[mid]; if(m.core !== cid) continue; let sh = ''; for(let sid in state.skills) { const s = state.skills[sid]; if(s.mastery !== mid || s.hidden) continue; const skillLevel = Math.floor(s.seconds / 3600); const skillExpPercent = ((s.seconds % 3600) / 3600 * 100).toFixed(1); sh += ` <div class="skill-card"> <div class="skill-header-row"> <span class="skill-name">${s.name}</span> <div class="skill-meta-group"> <span class="skill-lv-badge">Lv.${skillLevel}</span> <button class="btn-skill-edit" onclick="openEditSkillModal('${sid}')"> <span class="material-icons-round" style="font-size:16px;">edit</span> </button> </div> </div> <div class="skill-progress-track"> <div class="skill-progress-fill" style="width: ${skillExpPercent}%"></div> <div class="skill-percent-text">${skillExpPercent}%</div> </div> </div>`; } if(sh || true) { box.innerHTML += `<div class="mastery-header"><span class="mastery-title">${m.name} (Lv.${m.level})</span><button class="btn-edit" onclick="openEditMasteryModal('${mid}')">✎</button></div>${sh || '<div style="font-size:0.8em;color:#555;padding:5px;">스킬 없음</div>'}`; has = true; } } if(!has) box.innerHTML = '<div style="font-size:0.8em;color:#555;padding:10px;">데이터 없음</div>'; }); }
 window.toggleStat = (id) => { const e = document.getElementById(`detail-${id}`); e.style.display = e.style.display==='none'?'block':'none'; };
 function renderQuest() { const c = document.getElementById('quest-container'); c.innerHTML = ''; let cnt = 0; for(let qid in state.quests) { const q = state.quests[qid]; const ms = state.skills[q.mainSkillId]; if(!ms || ms.hidden) continue; let sub = ''; if(q.subSkillId) { const ss = state.skills[q.subSkillId]; if(ss && !ss.hidden) sub = `<div style="margin-top:4px;"><span class="quest-tag tag-sub">Bonus (20%)</span> ${ss.name}</div>`; } cnt++; c.innerHTML += `<div class="card quest-card"><div class="quest-info"><div class="quest-title">${q.name}</div><div class="quest-sub"><div><span class="quest-tag tag-main">Main (100%)</span> ${ms.name}</div>${sub}</div></div><div style="display:flex;gap:5px;"><button class="btn-sm btn-primary" onclick="startBattle('${qid}')">수락</button><button class="btn-sm" style="background:#333;color:#888;" onclick="confirmDeleteQuest('${qid}')">삭제</button></div></div>`; } document.getElementById('empty-quest-msg').style.display = cnt===0?'block':'none'; }
