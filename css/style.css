@@ -14,13 +14,27 @@
 }
 
 body.light-theme {
-    --bg-dark: #f0f2f5; --bg-panel: #ffffff;
-    --text: #222222; --border: #dddddd;
-    --accent: #0056b3; --gold: #b8860b;
-    --btn-sec-bg: #e0e0e0;
-    --btn-sec-text: #555;
-    --bg-mastery-header: rgba(0, 0, 0, 0.03);
-    --bg-skill-card: #ffffff; 
+    /* [배경] 완전 흰색보다는 눈이 편한 '쿨 그레이' 톤 적용 */
+    --bg-dark: #F3F4F6; 
+    --bg-panel: #FFFFFF;
+    
+    /* [텍스트] 완전 검정(#000)보다 부드러운 '다크 그레이' */
+    --text: #1F2937; 
+    --border: #E5E7EB;
+    
+    /* [포인트] 칙칙한 네이비 대신 선명한 '로얄 블루' */
+    --accent: #2563EB; 
+    
+    /* [골드] 흰 배경에서 잘 안 보이는 노란색 대신, 가독성 좋은 '앰버 골드' */
+    --gold: #D97706; 
+    
+    /* [버튼] 보조 버튼 색상 조정 */
+    --btn-sec-bg: #F3F4F6;
+    --btn-sec-text: #4B5563;
+
+    /* [계층구조] 카드 배경 구분감 강화 */
+    --bg-mastery-header: #F9FAFB;
+    --bg-skill-card: #FFFFFF; 
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
