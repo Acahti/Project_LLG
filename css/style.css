@@ -168,9 +168,7 @@ button:active { transform: translateY(2px); border-bottom-width: 2px; }
     
     /* 검은색(#000) -> 흰색(#fff)으로 변경 */
     color: #fff; 
-    
-    /* 노란 배경에서 흰 글씨가 잘 보이도록 그림자 추가 */
-    text-shadow: 1px 1px 0 rgba(0,0,0,0.2); 
+
     font-weight: bold;
 }
 .btn-edit { background: transparent; border: none; color: #888; padding: 5px; font-size: 1.2em; width: auto; border-bottom: none; margin: 0; }
