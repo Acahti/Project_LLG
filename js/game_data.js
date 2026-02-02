@@ -597,7 +597,7 @@ export const JOB_DATA = [
     // =========================================================================
     // 7. 현대 & 특수 & 예능 (150종 이상)
     // =========================================================================
-    { id: 'j_m_1', name: '사회복무요원', condition: { type: 'total_level', value: 22 }, desc: '사복. 국민을 위해 봉사.' },
+    { id: 'j_m_1', name: '자원봉사자', condition: { type: 'total_level', value: 22 }, desc: '국민을 위해 봉사.' },
     { id: 'j_m_2', name: '코인 트레이더', condition: { type: 'stat_sum', keys: ['INT', 'WIS'], value: 40 }, desc: '차트 분석.' },
     { id: 'j_m_3', name: '퀀트 투자자', condition: { type: 'stat_sum', keys: ['INT', 'DEX'], value: 60 }, desc: '알고리즘 매매.' },
     { id: 'j_m_4', name: '전업 투자자', condition: { type: 'stat_val', key: 'gold', value: 1000000 }, desc: '100만G 돌파.' },
