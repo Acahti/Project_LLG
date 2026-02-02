@@ -194,7 +194,7 @@ function recordActivity(questId, startTime, endTime, isManual = false) {
 // ⚔️ 전투 및 결산 UI 로직
 // =============================================================================
 
-w// [Logic] 전투 종료 버튼 클릭 시 분기 처리
+// [Logic] 전투 종료 버튼 클릭 시 분기 처리
 window.stopBattleAction = () => {
     if (!activeQuestId) return;
 
