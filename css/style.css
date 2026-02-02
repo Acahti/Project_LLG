@@ -109,7 +109,7 @@ nav {
     
     font-size: 2em; 
     color: var(--gold); 
-    text-shadow: 2px 2px 0 rgba(0,0,0,0.5); 
+    text-shadow: none; 
     pointer-events: none; 
     
     /* ★ [Fix] 아이폰 수직 정렬 버그 수정 */
