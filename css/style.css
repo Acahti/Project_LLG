@@ -294,3 +294,24 @@ select option:hover, select option:checked { background-color: var(--accent) !im
         &::-webkit-scrollbar-track { background: transparent; }
     }
 }
+
+/* =======================================================
+   🍎 [iOS 전용 패치] 아이폰에서만 적용되는 CSS
+   (안드로이드/PC에는 영향을 주지 않음)
+   ======================================================= */
+@supports (-webkit-touch-callout: none) {
+    /* 1. 차트 레벨 텍스트 보정 */
+    .chart-level {
+        padding-top: 6px; /* 아이폰에서만 살짝 내림 */
+    }
+
+    /* 2. 작은 텍스트 요소들 보정 */
+    button, .chip, .skill-lv-badge, .quest-tag, .nav-label {
+        padding-top: 2px; /* 아이폰에서만 살짝 내림 */
+    }
+    
+    /* 3. 폰트 렌더링 방식 변경 (iOS 픽셀 폰트 튀는 현상 방지) */
+    body {
+        -webkit-font-smoothing: none; 
+    }
+}
