@@ -70,18 +70,17 @@ const cleanupOldLogs = () => {
 
 const initApp = () => {
     sanitizeState(state);
-
-    // ★ [New] 앱 켤 때마다 청소기 가동
-    cleanupOldLogs();
     
-    // 테마 및 폰트 적용
+    // 앱 켤 때마다 오래된 로그 청소
+    cleanupOldLogs(); 
+
     document.body.className = state.settings.theme + '-theme';
     document.documentElement.style.setProperty('--base-font', state.settings.fontSize + 'px');
     document.getElementById('current-font-size').innerText = state.settings.fontSize;
     
     bindDataEvents();
     
-    // ★ [Fix] 하단바 이벤트 리스너를 initApp 내부로 이동 (확실한 실행 보장)
+    // 하단바 이벤트 연결
     document.querySelectorAll('.nav-btn').forEach(b => {
         b.onclick = () => switchTab(b.dataset.target);
     });
@@ -91,11 +90,14 @@ const initApp = () => {
     // [Resume] 전투 복귀 로직
     if (activeQuestId) {
         console.log(`[System] 수련 복귀: ${activeQuestId}`);
+        // 전투 탭으로 이동 (차트 그리기 포함된 함수)
         switchTab('battle'); 
         updateBattleUI('battle'); 
         showToast("수련을 이어서 진행합니다.");
     } else {
-        renderCharacter();
+        // ★ [Fix] 단순 렌더링 대신 탭 전환 함수 사용
+        // 이렇게 해야 차트(Canvas)가 올바른 타이밍에 그려집니다.
+        switchTab('character');
     }
 };
 
