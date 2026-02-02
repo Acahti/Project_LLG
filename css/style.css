@@ -25,24 +25,40 @@ body.light-theme {
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
+/* style.css 상단 부분 수정 */
+
 body {
-    background: var(--bg-panel); color: var(--text);
+    background: var(--bg-panel); 
+    color: var(--text);
     font-family: 'DungGeunMo', sans-serif;
     margin: 0; padding: 0;
-    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    width: 100%; height: 100%; overflow: hidden;
+    position: fixed; /* 화면 고정 */
+    top: 0; left: 0; right: 0; bottom: 0;
+    width: 100%; height: 100%; 
+    overflow: hidden; /* 바디 스크롤 원천 차단 */
+    
+    /* [New] 모바일 당겨서 새로고침 등 바운스 효과 방지 */
+    overscroll-behavior: none; 
+    
     padding-top: var(--safe-top); padding-bottom: var(--safe-bottom);
     display: flex; flex-direction: column;
     user-select: none; font-size: var(--base-font);
     transition: background 0.3s, color 0.3s;
 }
 
-.flex-center { display: flex; align-items: center; justify-content: center; gap: 5px; }
-
 main { 
-    flex: 1; overflow-y: auto; background: var(--bg-dark);
-    padding: 15px; padding-bottom: 80px; -webkit-overflow-scrolling: touch; 
+    flex: 1; 
+    /* [New] Flex 자식 요소가 부모를 뚫고 나가는 버그 방지 (핵심!) */
+    min-height: 0; 
+    
+    overflow-y: auto; /* 내부 스크롤 허용 */
+    background: var(--bg-dark);
+    padding: 15px; 
+    padding-bottom: 80px; 
+    -webkit-overflow-scrolling: touch; 
 }
+
+.flex-center { display: flex; align-items: center; justify-content: center; gap: 5px; }
 
 header { 
     height: 55px; background: var(--bg-panel); 
