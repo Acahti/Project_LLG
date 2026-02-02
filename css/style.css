@@ -163,7 +163,16 @@ button:active { transform: translateY(2px); border-bottom-width: 2px; }
 .btn-sm { width: auto; padding: 8px 12px; font-size: 0.9em; border-bottom-width: 2px; margin: 0; height: 36px; }
 .btn-text { background: transparent; border: none; color: #888; margin-top: 10px; border-bottom: none; font-size: 1em; }
 .btn-danger { background: var(--danger); }
-.btn-shop { background: var(--gold); color: #000; }
+.btn-shop { 
+    background: var(--gold); 
+    
+    /* 검은색(#000) -> 흰색(#fff)으로 변경 */
+    color: #fff; 
+    
+    /* 노란 배경에서 흰 글씨가 잘 보이도록 그림자 추가 */
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.2); 
+    font-weight: bold;
+}
 .btn-edit { background: transparent; border: none; color: #888; padding: 5px; font-size: 1.2em; width: auto; border-bottom: none; margin: 0; }
 .btn-edit:hover { color: var(--accent); }
 .btn-secondary { background: var(--btn-sec-bg); color: var(--btn-sec-text); border-bottom-color: rgba(0,0,0,0.1); }
