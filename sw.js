@@ -1,6 +1,6 @@
 // [1] 버전 명시
 // (따옴표 오류 수정함. 배포 때마다 이 숫자를 바꾸면, 사용자가 새로고침 시 최신을 받아옵니다.)
-const CACHE_NAME = 'llg-v1_9_14'; 
+const CACHE_NAME = 'llg-v1_9_15'; 
 
 const FILES = [
     './', 
