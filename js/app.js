@@ -390,21 +390,15 @@ window.forceRefreshAction = () => {
 };
 
 window.openStatisticsModal = () => { const list = document.getElementById('stats-log-list'); if (!list) return; list.innerHTML = ''; const stats = state.statistics; const h = Math.floor(stats.battle.totalSeconds / 3600); const m = Math.floor((stats.battle.totalSeconds % 3600) / 60); const logData = [ { label: "📜 총 의뢰 완료", value: `${stats.quest.completed}회` }, { label: "🌙 심야 수련(00-06)", value: `${stats.quest.nightOwl}회` }, { label: "⚔️ 누적 수련 시간", value: `${h}시간 ${m}분` }, { label: "💰 보상 교환 횟수", value: `${stats.shop.purchases}회` }, { label: "💸 누적 골드 소모", value: `${stats.shop.goldSpent.toLocaleString()} G` } ]; logData.forEach(item => { const div = document.createElement('div'); div.className = 'list-item'; div.style.cssText = 'display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid var(--border); font-size:0.9em; cursor:default;'; div.innerHTML = `<span>${item.label}</span><span style="color:var(--gold); font-weight:bold;">${item.value}</span>`; list.appendChild(div); }); document.getElementById('modal-statistics').style.display = 'flex'; };
-// [Fix] 모바일 오각형 찌그러짐(세로 늘어남) 방지 & 고해상도 처리
+// [Fix] 차트 색상 동기화 (라이트/다크 모드 완벽 대응)
 function drawRadarChart() {
     const container = document.querySelector('.chart-container');
     const cvs = document.getElementById('stat-radar');
     if (!cvs || !container) return;
 
-    // 1. 현재 컨테이너의 실제 너비 측정 (px 단위)
+    // 1. 크기 강제 고정 (정사각형 유지)
     const size = container.clientWidth;
-
-    // 2. 높이를 너비와 똑같이 강제로 맞춤 (CSS aspect-ratio 대신 JS로 물리적 고정)
-    // 이렇게 하면 어떤 화면에서도 무조건 정사각형이 됩니다.
     container.style.height = `${size}px`;
-
-    // 3. 캔버스 내부 해상도 동기화 (화질 개선 + 비율 유지)
-    // 캔버스의 그리기 영역 크기를 스타일 크기와 일치시킵니다.
     cvs.width = size;
     cvs.height = size;
 
@@ -414,21 +408,23 @@ function drawRadarChart() {
     const cx = w / 2;
     const cy = h / 2;
     
-    // 반지름 계산 (여백 40px 제외)
-    // 화면이 너무 작을 경우를 대비해 최소 반지름 안전장치 추가
+    // 2. ★ [핵심] 현재 테마의 CSS 색상 변수 가져오기
+    const computed = getComputedStyle(document.body);
+    const colorBorder = computed.getPropertyValue('--border').trim();
+    const colorAccent = computed.getPropertyValue('--accent').trim();
+    const colorText = computed.getPropertyValue('--text').trim();
+
     const r = Math.max(10, (w / 2) - 40); 
 
-    // 캔버스 초기화
     ctx.clearRect(0, 0, w, h);
 
-    // [배경] 오각형 그리기 (5단계)
-    ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--border').trim();
+    // [배경] 오각형 그리기 (Grid)
+    ctx.strokeStyle = colorBorder; // 테마의 테두리 색 사용
     ctx.lineWidth = 1;
     
     for (let i = 1; i <= 5; i++) {
         ctx.beginPath();
         for (let j = 0; j < 5; j++) {
-            // 오각형 각도 계산 ( -Math.PI/2 는 12시 방향부터 시작하기 위함)
             const angle = (Math.PI * 2 * j) / 5 - Math.PI / 2;
             const x = cx + (r / 5) * i * Math.cos(angle);
             const y = cy + (r / 5) * i * Math.sin(angle);
@@ -440,37 +436,40 @@ function drawRadarChart() {
 
     // [데이터] 스탯 영역 그리기
     const stats = ['STR', 'DEX', 'INT', 'WIS', 'VIT'];
-    // 데이터가 없으면 0으로 처리
     const levels = stats.map(k => state.cores[k] ? state.cores[k].level : 0);
-    // 최대값 계산 (그래프가 꽉 차 보이지 않게 1.2배 여유)
     const maxVal = Math.max(20, ...levels) * 1.2;
 
     ctx.beginPath();
-    ctx.fillStyle = 'rgba(77, 150, 255, 0.4)'; // --accent 색상의 반투명
-    ctx.strokeStyle = '#4D96FF'; // --accent
-    ctx.lineWidth = 2;
-
+    
     stats.forEach((k, i) => {
         const v = state.cores[k] ? state.cores[k].level : 0;
         const angle = (Math.PI * 2 * i) / 5 - Math.PI / 2;
-        // 값에 비례하여 거리 계산
         const dist = (v / maxVal) * r;
         ctx.lineTo(cx + dist * Math.cos(angle), cy + dist * Math.sin(angle));
     });
 
     ctx.closePath();
+
+    // ★ [핵심] 채우기 색상 (투명도 적용)
+    ctx.save(); // 현재 상태 저장
+    ctx.fillStyle = colorAccent; // 테마 강조색
+    ctx.globalAlpha = 0.4;       // 투명도 40%
     ctx.fill();
+    ctx.restore(); // 투명도 복구
+
+    // ★ [핵심] 외곽선 색상 (진하게)
+    ctx.strokeStyle = colorAccent; 
+    ctx.lineWidth = 2;
     ctx.stroke();
 
     // [라벨] 텍스트 그리기
-    ctx.fillStyle = '#888';
-    ctx.font = '10px "DungGeunMo"'; // 폰트 명시
+    ctx.fillStyle = colorText; // ★ 테마 글자색 사용 (라이트모드에선 진한색)
+    ctx.font = '10px "DungGeunMo"'; 
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle'; // 수직 정렬 중앙
+    ctx.textBaseline = 'middle'; 
 
     stats.forEach((k, i) => {
         const angle = (Math.PI * 2 * i) / 5 - Math.PI / 2;
-        // 오각형 끝보다 20px 더 바깥에 글씨 배치
         const lx = cx + (r + 20) * Math.cos(angle);
         const ly = cy + (r + 20) * Math.sin(angle);
         ctx.fillText(k, lx, ly);
