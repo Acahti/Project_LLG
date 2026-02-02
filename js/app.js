@@ -541,7 +541,21 @@ document.getElementById('btn-save-folder').onclick = () => { const name = docume
 window.deleteCurrentFolder = () => { const items = state.inventory.filter(i => i.folderId === editingFolderId); if(items.length > 0) return showToast("폴더가 비어있지 않아 삭제할 수 없습니다."); openConfirmModal("폴더 삭제", "정말 삭제하시겠습니까?", () => { state.folders = state.folders.filter(f => f.id !== editingFolderId); DataManager.save(state); invGoBack(); closeModal('modal-folder-manager'); showToast("삭제되었습니다."); }); };
 window.moveItemAction = () => { const targetFid = document.getElementById('detail-move-select').value || null; const item = state.inventory.find(i => i.id === editingItemId); item.folderId = targetFid; DataManager.save(state); updateInvRender(); closeModal('modal-item-detail'); showToast("이동되었습니다."); };
 window.deleteItemAction = () => { closeModal('modal-item-detail'); openConfirmModal("아이템 삭제", "정말 삭제하시겠습니까?", () => { state.inventory = state.inventory.filter(x => x.id !== editingItemId); DataManager.save(state); updateInvRender(); showToast("삭제되었습니다."); }); };
-function renderShop() { const b = document.getElementById('shop-container'); b.innerHTML = ''; state.shopItems.forEach(i => { b.innerHTML += `<div class="card" style="display:flex;justify-content:space-between;align-items:center;"><span>${i.name}</span><div style="display:flex;gap:5px;"><button class="btn-shop btn-sm" onclick="buyItem('${i.id}', ${i.cost})">${i.cost}G</button><button class="btn-sm btn-danger" onclick="confirmDeleteShopItem('${i.id}')">🗑️</button></div></div>`; }); }
+function renderShop() { 
+    const b = document.getElementById('shop-container'); 
+    b.innerHTML = ''; 
+    state.shopItems.forEach(i => { 
+        b.innerHTML += `
+        <div class="card" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>${i.name}</span>
+            <div style="display:flex;gap:5px;">
+                <button class="btn-shop btn-sm" onclick="buyItem('${i.id}', ${i.cost})">${i.cost}G</button>
+                <button class="btn-sm btn-danger" onclick="confirmDeleteShopItem('${i.id}')">삭제</button>
+            </div>
+        </div>`; 
+    }); 
+}
+
 window.buyItem = (id, cost) => { if (!state.statistics || !state.statistics.shop) { state.statistics = state.statistics || {}; state.statistics.shop = { purchases: 0, goldSpent: 0 }; } if(state.gold >= cost) { openConfirmModal("구매 확인", "정말 구매하시겠습니까?", () => { state.gold -= cost; state.statistics.shop.purchases += 1; state.statistics.shop.goldSpent += cost; DataManager.save(state); updateGlobalUI(); renderShop(); showToast("구매가 완료되었습니다."); }); } else { showToast("골드가 부족합니다."); } };
 window.openEditSkillModal = (sid) => { editingSkillId = sid; const s = state.skills[sid]; document.getElementById('modal-edit-skill').style.display = 'flex'; document.getElementById('edit-skill-name').value = s.name; const sel = document.getElementById('edit-skill-mastery'); sel.innerHTML = ''; for(let mid in state.masteries) sel.innerHTML += `<option value="${mid}" ${mid===s.mastery?'selected':''}>${state.masteries[mid].name}</option>`; };
 window.saveSkillEdit = () => { const n = document.getElementById('edit-skill-name').value.trim(); if(!n) return showToast("이름을 입력해주세요."); state.skills[editingSkillId].name = n; state.skills[editingSkillId].mastery = document.getElementById('edit-skill-mastery').value; DataManager.save(state); updateGlobalUI(); renderCharacter(); renderQuest(); closeModal('modal-edit-skill'); showToast("수정되었습니다."); };
