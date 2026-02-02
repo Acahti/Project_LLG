@@ -9,7 +9,15 @@ let timer = null;
 let activeQuestId = state.activeQuestId || null;
 
 // UI 상태 변수
-let tempEndTime = null; // 시간 수정 시 임시 종료 시간
+let tempEndTime = null; 
+let selectedCoreForCreate = null, editingSkillId = null, editingMasteryId = null, editingItemId = null;
+let invState = { view: 'portal', category: null, folderId: null };
+let editingFolderId = null; 
+
+const RECORD_COLORS = ['#FF5C5C', '#FF9F43', '#FFD700', '#6BCB77', '#4D96FF', '#9D84FF', '#FF85C0', '#777777'];
+const RECORD_ICONS = ['menu_book', 'edit', 'article', 'star', 'favorite', 'emoji_events', 'school', 'fitness_center', 'work', 'flight', 'pets', 'restaurant', 'coffee', 'music_note', 'camera_alt', 'palette', 'home', 'shopping_cart', 'lock', 'visibility', 'settings', 'bolt', 'lightbulb', 'local_fire_department'];
+let selectedItemColor = RECORD_COLORS[0];
+let selectedItemIcon = RECORD_ICONS[0];
 
 // [Safety] 데이터 무결성 검사
 const sanitizeState = (s) => {
@@ -51,7 +59,7 @@ const initApp = () => {
 // =============================================================================
 function recordActivity(questId, startTime, endTime, isManual = false) {
     const q = state.quests[questId];
-    if (!q) return;
+    if (!q) return { success: false, msg: "의뢰 정보를 찾을 수 없습니다." };
 
     const mainSkill = state.skills[q.mainSkillId];
     const subSkill = q.subSkillId ? state.skills[q.subSkillId] : null;
@@ -65,26 +73,22 @@ function recordActivity(questId, startTime, endTime, isManual = false) {
     const endCursor = new Date(endTime);
     
     while (currentCursor < endCursor) {
-        // 현재 커서의 날짜 키 (YYYY-MM-DD)
         const dateKey = currentCursor.toISOString().split('T')[0];
         
-        // 다음 날 자정 계산
         const nextMidnight = new Date(currentCursor);
         nextMidnight.setDate(nextMidnight.getDate() + 1);
         nextMidnight.setHours(0, 0, 0, 0);
 
-        // 이번 날짜에 기록될 종료 시점 (실제 종료 시간 vs 자정 중 빠른 것)
         const segmentEnd = new Date(Math.min(endCursor, nextMidnight));
         const segmentSeconds = Math.floor((segmentEnd - currentCursor) / 1000);
 
         if (segmentSeconds > 0) {
-            // [A] 데이터 초기화
             if (!state.dailyRecords[dateKey]) {
                 state.dailyRecords[dateKey] = { logs: [], skillStats: {}, summary: { gold: 0, time: 0 } };
             }
             const dayRecord = state.dailyRecords[dateKey];
 
-            // [B] 스냅샷 로그 박제 (원본 삭제 대비)
+            // [Snapshot] 로그 박제
             dayRecord.logs.push({
                 id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
                 startTime: currentCursor.getTime(),
@@ -95,7 +99,7 @@ function recordActivity(questId, startTime, endTime, isManual = false) {
                 isManual: isManual
             });
 
-            // [C] 스킬 통계 합산 (ID 기반)
+            // [Stats] 스킬 통계 합산
             if (mainSkill) {
                 dayRecord.skillStats[q.mainSkillId] = (dayRecord.skillStats[q.mainSkillId] || 0) + segmentSeconds;
             }
@@ -103,24 +107,23 @@ function recordActivity(questId, startTime, endTime, isManual = false) {
                 dayRecord.skillStats[q.subSkillId] = (dayRecord.skillStats[q.subSkillId] || 0) + segmentSeconds;
             }
 
-            // [D] 일별 요약 업데이트
+            // [Summary] 일별 요약
             dayRecord.summary.time += segmentSeconds;
-            dayRecord.summary.gold += segmentSeconds; // 기본 1초 = 1G
+            dayRecord.summary.gold += segmentSeconds; 
         }
-        currentCursor = nextMidnight; // 다음 루프는 다음 날 0시부터
+        currentCursor = nextMidnight;
     }
 
-    // 3. 실제 보상 지급 (골드 & 스킬 경험치)
+    // 3. 보상 지급
     state.gold += totalDuration;
     if (mainSkill) mainSkill.seconds += totalDuration;
     if (subSkill) subSkill.seconds += Math.floor(totalDuration * 0.2);
     
-    // 4. 전리품 (수동 입력이 아닐 때만)
+    // 4. 전리품 (수동 입력 X)
     let lootMsg = "";
     if (!isManual && typeof LOOT_TABLE !== 'undefined') {
         LOOT_TABLE.forEach(loot => {
             if (loot.condition.type === 'min_time' && totalDuration < loot.condition.value) return;
-            // 확률 보정 (시간이 길수록 확률 증가, 최대 3배)
             const chance = loot.dropRate * (1 + Math.min(totalDuration / 3600, 2));
             if (Math.random() < chance) {
                 state.inventory.push({ 
@@ -136,11 +139,9 @@ function recordActivity(questId, startTime, endTime, isManual = false) {
         });
     }
 
-    // 5. 글로벌 통계 업데이트
+    // 5. 통계 업데이트
     state.statistics.quest.completed++;
     state.statistics.battle.totalSeconds += totalDuration;
-    
-    // 심야 체크 (시작 시간 기준)
     const startHour = new Date(startTime).getHours();
     if (startHour >= 0 && startHour < 6) state.statistics.quest.nightOwl++;
 
@@ -152,54 +153,36 @@ function recordActivity(questId, startTime, endTime, isManual = false) {
 // ⚔️ 전투 및 결산 UI 로직
 // =============================================================================
 
-// [Action] 전투 종료 버튼 클릭 -> 결산 모달 오픈
 window.stopBattleAction = () => {
     if (!activeQuestId) return;
-    tempEndTime = Date.now(); // 현재 시간을 기본 종료 시간으로 설정
+    tempEndTime = Date.now(); 
     updateResultModalUI();
     document.getElementById('modal-battle-result').style.display = 'flex';
-    
-    // 타이머 정지 (백그라운드에서는 계속 돌지만 UI 갱신만 멈춤)
     if (timer) { clearInterval(timer); timer = null; }
 };
 
-// [UI] 결산 모달 UI 갱신 (슬라이더 조작 시 호출)
 function updateResultModalUI() {
     const startTime = state.activeStartTime;
     const durationSec = Math.floor((tempEndTime - startTime) / 1000);
-    
-    // 시간 표시
     const h = Math.floor(durationSec / 3600);
     const m = Math.floor((durationSec % 3600) / 60);
     const s = durationSec % 60;
     
-    document.getElementById('result-time-text').innerText = 
-        `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-    
-    // 골드 예측 (실시간 변동 애니메이션 효과)
-    const goldText = document.getElementById('result-gold-text');
-    goldText.innerText = `+ ${durationSec.toLocaleString()} G`;
-    
-    // 종료 시각 표시
+    document.getElementById('result-time-text').innerText = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+    document.getElementById('result-gold-text').innerText = `+ ${durationSec.toLocaleString()} G`;
     document.getElementById('result-end-time').innerText = new Date(tempEndTime).toLocaleTimeString();
 }
 
-// [Action] 시간 조정 (Time Cutter)
 window.adjustResultTime = (minutes) => {
     const newTime = tempEndTime + (minutes * 60 * 1000);
-    // 시작 시간보다 이전으로 갈 순 없음
     if (newTime <= state.activeStartTime) return showToast("시작 시간보다 빠를 수 없습니다.");
-    // 현재 시간보다 미래로 갈 순 없음
     if (newTime > Date.now()) return showToast("미래의 시간으로 설정할 수 없습니다.");
-    
     tempEndTime = newTime;
     updateResultModalUI();
 };
 
-// [Action] 최종 확정 (Save & Finish)
 window.confirmBattleResult = () => {
     const result = recordActivity(activeQuestId, state.activeStartTime, tempEndTime, false);
-    
     if (result.success) {
         let msg = `수련 완료! +${result.earnedGold}G`;
         if (result.lootMsg) msg += result.lootMsg;
@@ -207,22 +190,17 @@ window.confirmBattleResult = () => {
     } else {
         showToast(result.msg);
     }
-
-    // 상태 초기화
     activeQuestId = null;
     state.activeQuestId = null;
     state.activeStartTime = null;
     DataManager.save(state);
-    
     closeModal('modal-battle-result');
     updateGlobalUI();
     updateBattleUI('idle');
     switchTab('character');
 };
 
-// [Action] 사후 보고 모달 열기
 window.openManualRecordModal = () => {
-    // 의뢰 목록 로드
     const sel = document.getElementById('manual-quest-select');
     sel.innerHTML = '';
     let hasQuest = false;
@@ -232,7 +210,6 @@ window.openManualRecordModal = () => {
     }
     if (!hasQuest) return showToast("등록된 의뢰가 없습니다.");
     
-    // 날짜/시간 기본값 (어제)
     const now = new Date();
     document.getElementById('manual-date').valueAsDate = now;
     document.getElementById('manual-start-time').value = "10:00";
@@ -241,7 +218,6 @@ window.openManualRecordModal = () => {
     document.getElementById('modal-manual-record').style.display = 'flex';
 };
 
-// [Action] 사후 보고 저장
 window.submitManualRecord = () => {
     const qid = document.getElementById('manual-quest-select').value;
     const dateStr = document.getElementById('manual-date').value;
@@ -253,16 +229,12 @@ window.submitManualRecord = () => {
     const startTime = new Date(`${dateStr}T${timeStr}`).getTime();
     const endTime = startTime + (durationMin * 60 * 1000);
 
-    // 미래 날짜 방지
     if (endTime > Date.now()) return showToast("미래의 일은 기록할 수 없습니다.");
-
-    // 충돌 체크 (단순 버전: 해당 날짜에 로그가 너무 많으면 경고)
-    // * 실제로는 정밀한 시간 겹침 로직이 필요하나, 모바일 성능상 '일일 24시간 초과' 정도만 체크 권장
     if (state.dailyRecords[dateStr] && state.dailyRecords[dateStr].summary.time + (durationMin*60) > 86400) {
         return showToast("하루 24시간을 초과할 수 없습니다.");
     }
 
-    const result = recordActivity(qid, startTime, endTime, true); // true = Manual
+    const result = recordActivity(qid, startTime, endTime, true);
     if (result.success) {
         showToast(`기록되었습니다. (전리품 획득 불가)`);
         closeModal('modal-manual-record');
@@ -272,9 +244,6 @@ window.submitManualRecord = () => {
     }
 };
 
-// =============================================================================
-// 기존 함수들 (UI 업데이트 등) - 유지
-// =============================================================================
 window.startBattle = (id) => {
     if (activeQuestId || timer) return showToast("이미 진행 중인 의뢰가 있습니다.");
     state.activeStartTime = Date.now();
@@ -302,10 +271,7 @@ function updateBattleUI(mode) {
             const h = Math.floor(elapsed / 3600);
             const m = Math.floor((elapsed % 3600) / 60).toString().padStart(2, '0');
             const s = (elapsed % 60).toString().padStart(2, '0');
-            
             timerText.innerText = h > 0 ? `${h}:${m}:${s}` : `00:${m}:${s}`;
-            
-            // 실시간 골드 표시
             subText.innerHTML = `수련 진행 중... <br><span style="color:var(--gold); font-size:1.2em; font-weight:bold;">+ ${elapsed.toLocaleString()} G</span>`;
         };
         renderTimer();
@@ -318,30 +284,9 @@ function updateBattleUI(mode) {
     }
 }
 
-// ... (나머지 showToast, 모달 관련 함수 등 기존 코드 유지) ...
-// (전체 코드를 다 넣으면 너무 길어지므로, recordActivity, stopBattleAction 등 변경된 핵심 로직 위주로 교체하시고 
-//  나머지 UI 헬퍼 함수들은 기존 app.js 것을 그대로 두셔도 됩니다.)
-
-// [중요] 기존 app.js의 맨 마지막 줄 initApp(); 호출 유지
-// [중요] DataManager, BattleManager 등 import 경로 확인
-
-// ※ 아래는 전체 교체를 위한 나머지 필수 함수들입니다 (기존과 동일)
-window.showToast = (msg) => {
-    const c = document.getElementById('toast-container');
-    const d = document.createElement('div'); d.className = 'toast'; d.innerText = msg;
-    c.appendChild(d);
-    setTimeout(() => { d.style.opacity = '0'; setTimeout(() => d.remove(), 400); }, 2500);
-};
-// ... (이전 답변의 나머지 함수들 복사) ...
-window.openConfirmModal = (title, msg, callback) => {
-    const m = document.getElementById('modal-confirm');
-    document.getElementById('confirm-title').innerText = title;
-    document.getElementById('confirm-msg').innerText = msg;
-    m.style.display = 'flex';
-    const b = document.getElementById('btn-confirm-yes');
-    const nb = b.cloneNode(true); b.parentNode.replaceChild(nb, b);
-    nb.onclick = () => { m.style.display = 'none'; callback(); };
-};
+// ... (기존 헬퍼 함수들 유지) ...
+window.showToast = (msg) => { const c = document.getElementById('toast-container'); const d = document.createElement('div'); d.className = 'toast'; d.innerText = msg; c.appendChild(d); setTimeout(() => { d.style.opacity = '0'; setTimeout(() => d.remove(), 400); }, 2500); };
+window.openConfirmModal = (title, msg, callback) => { const m = document.getElementById('modal-confirm'); document.getElementById('confirm-title').innerText = title; document.getElementById('confirm-msg').innerText = msg; m.style.display = 'flex'; const b = document.getElementById('btn-confirm-yes'); const nb = b.cloneNode(true); b.parentNode.replaceChild(nb, b); nb.onclick = () => { m.style.display = 'none'; callback(); }; };
 window.closeConfirmModal = () => document.getElementById('modal-confirm').style.display = 'none';
 window.closeModal = (id) => document.getElementById(id).style.display = 'none';
 const closeAllModals = () => document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
