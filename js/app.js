@@ -194,9 +194,56 @@ function recordActivity(questId, startTime, endTime, isManual = false) {
 // ⚔️ 전투 및 결산 UI 로직
 // =============================================================================
 
+w// [Logic] 전투 종료 버튼 클릭 시 분기 처리
 window.stopBattleAction = () => {
     if (!activeQuestId) return;
-    tempEndTime = Date.now(); 
+
+    const now = Date.now();
+    const durationSec = Math.floor((now - state.activeStartTime) / 1000);
+
+    // 1. [1분 미만] : 기록 불가, 즉시 종료
+    if (durationSec < 60) {
+        showToast("1분 미만은 의뢰가 인정되지 않습니다.");
+        
+        // 타이머 및 상태 초기화
+        if (timer) { clearInterval(timer); timer = null; }
+        activeQuestId = null;
+        state.activeQuestId = null;
+        state.activeStartTime = null;
+        DataManager.save(state);
+        
+        updateBattleUI('idle');
+        return; // 여기서 함수 종료
+    }
+
+    // 2. [1분 이상 ~ 10분 미만] : 시간 조정 불필요 -> 즉시 완료 처리
+    if (durationSec < 600) {
+        // 모달 없이 바로 기록 저장
+        const result = recordActivity(activeQuestId, state.activeStartTime, now, false);
+        
+        if (result.success) {
+            let msg = `수련 완료! +${result.earnedGold}G`;
+            if (result.lootMsg) msg += result.lootMsg;
+            showToast(msg);
+        } else {
+            showToast(result.msg);
+        }
+
+        // 상태 초기화 및 화면 이동
+        if (timer) { clearInterval(timer); timer = null; }
+        activeQuestId = null;
+        state.activeQuestId = null;
+        state.activeStartTime = null;
+        DataManager.save(state);
+        
+        updateGlobalUI();
+        updateBattleUI('idle');
+        switchTab('character'); // 캐릭터 화면으로 복귀
+        return; // 여기서 함수 종료
+    }
+
+    // 3. [10분 이상] : 시간 조정 모달 표시 (기존 로직)
+    tempEndTime = now; 
     updateResultModalUI();
     document.getElementById('modal-battle-result').style.display = 'flex';
     if (timer) { clearInterval(timer); timer = null; }
