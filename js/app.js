@@ -224,6 +224,7 @@ window.openManualRecordModal = () => {
     document.getElementById('modal-manual-record').style.display = 'flex';
 };
 
+// [Action] 사후 보고 저장 (로직 강화 버전)
 window.submitManualRecord = () => {
     const qid = document.getElementById('manual-quest-select').value;
     const dateStr = document.getElementById('manual-date').value;
@@ -232,15 +233,44 @@ window.submitManualRecord = () => {
 
     if (!qid || !dateStr || !timeStr || !durationMin) return showToast("모든 정보를 입력해주세요.");
 
-    const startTime = new Date(`${dateStr}T${timeStr}`).getTime();
-    const endTime = startTime + (durationMin * 60 * 1000);
+    // 입력받은 시간 (ms)
+    const newStart = new Date(`${dateStr}T${timeStr}`).getTime();
+    const newEnd = newStart + (durationMin * 60 * 1000);
 
-    if (endTime > Date.now()) return showToast("미래의 일은 기록할 수 없습니다.");
+    // 1. 미래 날짜 방지
+    if (newEnd > Date.now()) return showToast("미래의 일은 기록할 수 없습니다.");
+
+    // 2. [New] 과거 제한 (30일) - 너무 옛날 기록 방지
+    const limitDate = new Date();
+    limitDate.setDate(limitDate.getDate() - 30);
+    if (newStart < limitDate.getTime()) return showToast("최근 30일 이내의 기록만 가능합니다.");
+
+    // 3. [New] 정밀 충돌 감지 (Collision Detection)
+    // 해당 날짜(dateStr)의 기록뿐만 아니라, 자정을 넘겨서 다음날에 걸치는 경우도 고려해야 하므로
+    // state.dailyRecords 전체를 뒤지거나, 최소한 앞뒤 날짜를 체크해야 합니다.
+    // 하지만 성능을 위해 '입력한 날짜'의 기록과 대조합니다.
+    
+    if (state.dailyRecords[dateStr] && state.dailyRecords[dateStr].logs) {
+        const logs = state.dailyRecords[dateStr].logs;
+        for (const log of logs) {
+            const logStart = log.startTime;
+            const logEnd = logStart + (log.duration * 1000); // log.duration은 초 단위
+
+            // 교차 검증 공식: (A시작 < B종료) AND (A종료 > B시작) 이면 겹침
+            if (newStart < logEnd && newEnd > logStart) {
+                // 어떤 의뢰와 겹치는지 알려줌
+                return showToast(`[${log.questName}] 기록과 시간이 겹칩니다.`);
+            }
+        }
+    }
+
+    // 4. 하루 24시간 초과 체크 (보조 수단)
     if (state.dailyRecords[dateStr] && state.dailyRecords[dateStr].summary.time + (durationMin*60) > 86400) {
         return showToast("하루 24시간을 초과할 수 없습니다.");
     }
 
-    const result = recordActivity(qid, startTime, endTime, true);
+    // 검증 통과 -> 저장 실행
+    const result = recordActivity(qid, newStart, newEnd, true); // true = Manual
     if (result.success) {
         showToast(`기록되었습니다. (전리품 획득 불가)`);
         closeModal('modal-manual-record');
