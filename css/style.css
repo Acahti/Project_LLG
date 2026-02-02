@@ -48,10 +48,13 @@ body {
 
 main { 
     flex: 1; 
-    /* [New] Flex 자식 요소가 부모를 뚫고 나가는 버그 방지 (핵심!) */
+    
+    /* ★ [Fix] 세로 늘어남 방지 (핵심) */
+    /* flex 아이템이 내부 컨텐츠 때문에 부모보다 커지는 것을 강제로 막습니다. */
+    height: 0; 
     min-height: 0; 
     
-    overflow-y: auto; /* 내부 스크롤 허용 */
+    overflow-y: auto; 
     background: var(--bg-dark);
     padding: 15px; 
     padding-bottom: 80px; 
