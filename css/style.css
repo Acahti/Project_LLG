@@ -208,7 +208,7 @@ select option:hover, select option:checked { background-color: var(--accent) !im
 #modal-confirm { z-index: 3000 !important; }
 
 /* =======================================================
-   [PC/태블릿 뷰] 좀비 버그(세로 늘어남) 방지용 절대 위치 레이아웃
+   ★ [PC/태블릿 뷰] 좀비 버그(세로 늘어남) 방지용 절대 위치 레이아웃
    ======================================================= */
 @media (min-width: 768px) {
     body {
@@ -216,6 +216,7 @@ select option:hover, select option:checked { background-color: var(--accent) !im
         position: relative;
         max-width: 420px;
         height: 90vh; /* 화면 높이의 90%로 못박음 */
+        max-height: 90vh; /* 2중 잠금 */
         margin: 5vh auto;
         
         border: 8px solid #333;
@@ -247,19 +248,16 @@ select option:hover, select option:checked { background-color: var(--accent) !im
     }
 
     main {
-        /* [4] 콘텐츠 영역을 좌표로 강제 감금 (Top 55 ~ Bottom 65) */
-        position: absolute;
-        top: 55px;
-        bottom: 65px;
-        left: 0; width: 100%;
-        
-        margin: 0; /* 마진 제거 */
-        padding: 15px !important;
-        padding-bottom: 15px !important; /* 하단바 가림 방지 */
+        /* [4] 콘텐츠 영역을 계산된 높이로 강제 감금 (100% - 헤더55 - 하단바65) */
+        /* Flex나 Absolute 좌표 대신 Calc 높이를 사용하면 훨씬 안정적입니다. */
+        margin-top: 55px;
+        height: calc(100% - 120px);
+        min-height: 0 !important;
+        max-height: calc(100% - 120px);
         
         overflow-y: auto; /* 오직 여기만 스크롤 가능 */
-        height: auto !important; /* 높이는 좌표에 따름 */
-        min-height: 0 !important;
+        padding: 15px !important;
+        padding-bottom: 15px !important;
         
         /* 스크롤바 디자인 (크롬/사파리) */
         &::-webkit-scrollbar { width: 6px; }
