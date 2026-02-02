@@ -433,21 +433,38 @@ window.openRestoreSkillMode=()=>{document.getElementById('modal-restore-skill').
 window.restoreSkill=(sid)=>{state.skills[sid].hidden=false;DataManager.save(state);openRestoreSkillMode();renderCharacter();showToast("복구되었습니다.");};
 window.permDeleteSkill=(sid)=>{openConfirmModal("영구 삭제", "정말 삭제하시겠습니까?", ()=>{delete state.skills[sid];DataManager.save(state);openRestoreSkillMode();updateGlobalUI();showToast("삭제되었습니다.");});};
 
+// [Fix] 탭 전환 시 스크롤 리셋 및 렌더링 안정화
 const switchTab = (t) => { 
     try {
+        // 1. 모든 탭 숨기기
         document.querySelectorAll('.tab-screen').forEach(e => e.classList.remove('active')); 
+        
+        // 2. 목표 탭 활성화
         const target = document.getElementById(`tab-${t}`);
         if(target) target.classList.add('active'); 
         
+        // 3. 하단바 활성화
         document.querySelectorAll('.nav-btn').forEach(e => e.classList.remove('active')); 
         const navBtn = document.querySelector(`[data-target="${t}"]`);
         if(navBtn) navBtn.classList.add('active'); 
         
-        if(t==='character') renderCharacter(); 
-        if(t==='quest') renderQuest(); 
-        if(t==='inventory') { invState.view = 'portal'; invState.category = null; invState.folderId = null; updateInvRender(); } 
-        if(t==='shop') renderShop(); 
-        if (t === 'battle') { requestAnimationFrame(() => updateBattleUI(activeQuestId ? 'battle' : 'idle')); }
+        // ★ [핵심] 탭 전환 시 스크롤을 맨 위로 강제 이동 (늘어남 현상 방지)
+        const main = document.querySelector('main');
+        if(main) main.scrollTop = 0;
+
+        // 4. 탭별 렌더링 (지연 실행으로 레이아웃 계산 시간 확보)
+        // setTimeout을 0으로 주면 브라우저가 화면을 한 번 그린 뒤에 실행합니다.
+        setTimeout(() => {
+            if(t==='character') {
+                renderCharacter();
+                drawRadarChart(); // 차트는 레이아웃이 잡힌 뒤에 그려야 안전함
+            }
+            if(t==='quest') renderQuest(); 
+            if(t==='inventory') { invState.view = 'portal'; invState.category = null; invState.folderId = null; updateInvRender(); } 
+            if(t==='shop') renderShop(); 
+            if(t==='battle') { requestAnimationFrame(() => updateBattleUI(activeQuestId ? 'battle' : 'idle')); }
+        }, 0);
+
     } catch(e) {
         console.error("Tab switch error:", e);
     }
