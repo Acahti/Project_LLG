@@ -3,10 +3,14 @@ import { BattleManager } from './battle.js';
 import { AchievementManager } from './achievement.js';
 import { LOOT_TABLE, TITLE_DATA, JOB_DATA } from './game_data.js';
 
+// 1. 데이터 로드 및 변수 초기화
 let state = DataManager.load();
-let timer = null, sessionSec = 0, activeQuestId = null;
-let selectedCoreForCreate = null, editingSkillId = null, editingMasteryId = null, editingItemId = null;
+let timer = null, sessionSec = 0;
 
+// ★ [핵심] 저장된 상태에 진행 중인 퀘스트가 있다면 변수에 복구 (새로고침 대응)
+let activeQuestId = state.activeQuestId || null;
+
+let selectedCoreForCreate = null, editingSkillId = null, editingMasteryId = null, editingItemId = null;
 let invState = { view: 'portal', category: null, folderId: null };
 let editingFolderId = null; 
 
@@ -15,17 +19,19 @@ const RECORD_ICONS = ['menu_book', 'edit', 'article', 'star', 'favorite', 'emoji
 let selectedItemColor = RECORD_COLORS[0];
 let selectedItemIcon = RECORD_ICONS[0];
 
-// [Safety] 데이터 무결성 검사 및 초기화 (오류 방지 핵심 로직)
+// [Safety] 데이터 무결성 검사 및 초기화
 const sanitizeState = (s) => {
     if (!s.settings) s.settings = { theme: 'dark', fontSize: 12 };
     if (!s.unlockedTitles) s.unlockedTitles = ['없음'];
     if (!s.unlockedJobs) s.unlockedJobs = ['무직'];
+    
+    // 통계 데이터 초기화
     if (!s.statistics) s.statistics = { 
         quest: { completed: 0, nightOwl: 0 }, 
         battle: { totalSeconds: 0 }, 
         shop: { purchases: 0, goldSpent: 0 } 
     };
-    // 깊은 객체 보호 (기존 데이터에 일부 키가 없을 경우 대비)
+    // 하위 객체 안전장치
     if (!s.statistics.quest) s.statistics.quest = { completed: 0, nightOwl: 0 };
     if (!s.statistics.battle) s.statistics.battle = { totalSeconds: 0 };
     if (!s.statistics.shop) s.statistics.shop = { purchases: 0, goldSpent: 0 };
@@ -33,16 +39,35 @@ const sanitizeState = (s) => {
     // 기본값 설정
     if (!s.currentTitle) s.currentTitle = '없음';
     if (!s.currentJob) s.currentJob = '무직';
+    
+    // 진행 중인 퀘스트 동기화
+    if (s.activeQuestId) activeQuestId = s.activeQuestId;
 };
 
 const initApp = () => {
-    sanitizeState(state); // [Fix] 데이터 안정화 실행
+    sanitizeState(state); // 데이터 안정화 실행
+
+    // 테마 및 폰트 설정 적용
     document.body.className = state.settings.theme + '-theme';
     document.documentElement.style.setProperty('--base-font', state.settings.fontSize + 'px');
     document.getElementById('current-font-size').innerText = state.settings.fontSize;
+    
     bindDataEvents();
     updateGlobalUI();
-    renderCharacter();
+
+    // ★ [RESUME LOGIC] 전투 이어하기 로직
+    if (activeQuestId) {
+        console.log(`[System] 진행 중인 의뢰(${activeQuestId}) 발견! 전투 화면으로 복귀합니다.`);
+        // 1. 강제로 전투 탭으로 이동
+        switchTab('battle'); 
+        // 2. 타이머 및 UI를 '전투 중' 상태로 갱신 (시간 계산 포함)
+        updateBattleUI('battle'); 
+        // 3. 안내 메시지
+        showToast("진행 중이던 수련을 이어서 합니다.");
+    } else {
+        // 진행 중인 게 없으면 평소처럼 캐릭터 화면 표시
+        renderCharacter();
+    }
 };
 
 window.showToast = (msg) => {
@@ -93,13 +118,23 @@ const bindDataEvents = () => {
     };
 };
 
+// [방어막 3] 강제 새로고침 기능 보완 (기존 함수 덮어쓰기)
 window.forceRefreshAction = () => {
-    openConfirmModal("강제 새로고침", "앱의 캐시를 비우고 다시 로드합니다.\n저장된 데이터는 유지됩니다.\n진행하시겠습니까?", () => {
+    openConfirmModal("강제 새로고침", "데이터를 안전하게 저장하고 앱을 다시 로드합니다.\n진행하시겠습니까?", () => {
+        // 1. 즉시 저장
         DataManager.save(state);
+        
+        // 2. 서비스 워커 해제 (캐시 문제 해결)
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(regs => { for (let r of regs) r.unregister(); });
+            navigator.serviceWorker.getRegistrations().then(regs => {
+                for (let r of regs) r.unregister();
+            });
         }
-        setTimeout(() => { window.location.reload(); }, 100);
+
+        // 3. 아주 짧은 지연 후 리로드 (저장 I/O 완료 시간 확보)
+        setTimeout(() => {
+            window.location.reload();
+        }, 100);
     });
 };
 
@@ -108,7 +143,6 @@ window.openStatisticsModal = () => {
     if (!list) return;
     list.innerHTML = '';
     
-    // [Safety] 통계 데이터 안전 접근
     const stats = state.statistics;
     const h = Math.floor(stats.battle.totalSeconds / 3600);
     const m = Math.floor((stats.battle.totalSeconds % 3600) / 60);
@@ -178,7 +212,7 @@ function updateGlobalUI() {
     document.getElementById('header-job-name').innerText = state.currentJob;
     document.getElementById('chart-total-level').innerText = `Lv.${tl}`;
     
-    // [Fix] 치명적 문법 오류 수정 (if문 추가)
+    // 업적 체크 및 저장
     if (AchievementManager.checkAll(state, window.showToast)) {
         DataManager.save(state);
     }
@@ -451,7 +485,10 @@ window.startBattle = (id) => {
     if (activeQuestId || timer) return showToast("이미 진행 중인 의뢰가 있습니다.");
     state.activeStartTime = Date.now();
     activeQuestId = id; sessionSec = 0;
-    DataManager.save(state); switchTab('battle');
+    // 상태 저장: 활성 퀘스트 ID 및 시작 시간 저장
+    state.activeQuestId = id;
+    DataManager.save(state); 
+    switchTab('battle');
 };
 
 window.stopBattleAction = () => {
@@ -511,7 +548,10 @@ window.stopBattleAction = () => {
         });
     }
 
-    showToast(msg); sessionSec = 0; activeQuestId = null; state.activeStartTime = null;
+    showToast(msg); sessionSec = 0; 
+    activeQuestId = null; 
+    state.activeQuestId = null; // 상태 초기화
+    state.activeStartTime = null;
     DataManager.save(state); updateGlobalUI(); updateBattleUI('idle');
 };
 
@@ -544,59 +584,30 @@ function updateBattleUI(mode) {
 
 document.querySelectorAll('.nav-btn').forEach(b => b.onclick = () => switchTab(b.dataset.target));
 
-
 // =============================================================================
 // 🛡️ [DATA SAFETY] 데이터 증발 방지 시스템 (3중 방어막)
 // =============================================================================
 
 // [방어막 1] 5초마다 자동 저장 (Auto-Save)
-// 브라우저가 갑자기 튕기거나 배터리가 나가도 최대 5초 전 데이터는 살립니다.
 setInterval(() => {
-    if (state && state.totalLevel > 0) { // 의미 있는 데이터가 있을 때만 저장
+    if (state && state.totalLevel > 0) { 
         DataManager.save(state);
-        // 개발자 도구 콘솔에서 저장 확인용 (배포 시 주석 처리 가능)
-        // console.log(`[AutoSave] ${new Date().toLocaleTimeString()} 저장 완료`);
     }
 }, 5000);
 
 // [방어막 2] 탭을 닫거나, 새로고침하거나, 다른 앱으로 갈 때 강제 저장
-// PC에서는 창 닫기/새로고침, 모바일에서는 홈 화면 가기/탭 전환 시 작동합니다.
 const saveOnExit = () => {
     if (state) {
         DataManager.save(state);
     }
 };
-
-// PC/모바일 브라우저 종료 및 새로고침 직전 감지
 window.addEventListener('beforeunload', saveOnExit);
-// 모바일에서 홈 화면으로 나가거나 탭을 바꿀 때 감지 (가장 중요)
 window.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') {
         saveOnExit();
     }
 });
-// 모바일 사파리(iOS) 등 일부 환경 대응
 window.addEventListener('pagehide', saveOnExit);
 
-// [방어막 3] 강제 새로고침 기능 보완 (기존 함수 덮어쓰기)
-// 기존 로직이 저장을 확실하게 보장하도록 비동기 처리 느낌을 줍니다.
-window.forceRefreshAction = () => {
-    openConfirmModal("강제 새로고침", "데이터를 안전하게 저장하고 앱을 다시 로드합니다.\n진행하시겠습니까?", () => {
-        // 1. 즉시 저장
-        DataManager.save(state);
-        
-        // 2. 서비스 워커 해제 (캐시 문제 해결)
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(regs => {
-                for (let r of regs) r.unregister();
-            });
-        }
-
-        // 3. 아주 짧은 지연 후 리로드 (저장 I/O 완료 시간 확보)
-        setTimeout(() => {
-            window.location.reload();
-        }, 100);
-    });
-};
 
 initApp();
